@@ -6,9 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
-from stptocnc.importers import parse_nc1_file
 from stptocnc.parsers.cnc_inspector import inspect_cnc_file
-from stptocnc.post.emi_writer import emit_minimal_sample, emit_nc1_part_to_emi
+from stptocnc.post.emi_writer import emit_minimal_sample
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -26,10 +25,6 @@ def _build_parser() -> argparse.ArgumentParser:
 
     inspect_nc1 = sub.add_parser("inspect-nc1", help="Placeholder NC1 inspection command")
     inspect_nc1.add_argument("path", type=Path, help="Path to NC1 file")
-
-    convert_nc1 = sub.add_parser("convert-nc1", help="Convert NC1 input into a placeholder EMI .CNC output")
-    convert_nc1.add_argument("input", type=Path, help="Path to NC1 file")
-    convert_nc1.add_argument("output", type=Path, help="Path to output CNC file")
 
     return parser
 
@@ -72,13 +67,6 @@ def main() -> int:
                 indent=2,
             )
         )
-        return 0
-
-    if args.command == "convert-nc1":
-        part = parse_nc1_file(args.input)
-        output = emit_nc1_part_to_emi(part)
-        args.output.write_text(output, encoding="utf-8")
-        print(json.dumps({"status": "ok", "input": str(args.input), "output": str(args.output)}, indent=2))
         return 0
 
     parser.error(f"Unknown command: {args.command}")

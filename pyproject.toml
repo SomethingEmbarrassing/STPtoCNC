@@ -11,10 +11,6 @@ requires-python = ">=3.10"
 authors = [{ name = "STPtoCNC Team" }]
 dependencies = []
 
-
-[project.optional-dependencies]
-dev = ["pytest"]
-
 [project.scripts]
 stptocnc = "stptocnc.cli.main:main"
 

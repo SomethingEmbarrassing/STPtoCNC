@@ -26,8 +26,4 @@ __all__ = [
     "Part",
     "PartFeature",
     "TubeProfile",
-    "Nc1Part",
-    "TubeEndSpec",
 ]
-
-from .nc1_part import Nc1Part, TubeEndSpec
