@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stptocnc"
+version = "0.1.0"
+description = "EMI 2400 ROP V1.4-oriented STP/NC1 to .CNC conversion toolkit"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "STPtoCNC Team" }]
+dependencies = []
+
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+stptocnc = "stptocnc.cli.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
