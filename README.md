@@ -1,68 +1,72 @@
 # STPtoCNC
 
-STPtoCNC is a Python toolkit for converting tube/pipe part definitions into **EMI 2400** `.CNC` programs aligned to the **EMI 2400 PROMPTS ROP V1.4** family.
+STPtoCNC is a Python application for converting tube/pipe part definitions into **EMI 2400** machine `.CNC` programs, with output conventions aligned to the **EMI 2400 PROMPTS ROP V1.4** post family.
 
-## Purpose
+## Why this project exists
 
-This repository is intentionally machine/post specific.
-It is **not** a generic CAM or generic G-code project.
+Our workflow needs reliable program generation for a specific machine and post style used in production. This project is intentionally **EMI-specific** and is **not** a generic CAM or generic G-code generator.
 
-## Current focus
+## Primary target
 
-- Build parser-first tooling for archived `.CNC` and `.nc1` analysis.
-- Maintain a clean internal model for part features and machine operations.
-- Emit controlled, minimal EMI-style program output for iterative validation.
-- Inspect PIPE/HSS/ANGLE NC1 records (including BO/KO when present) without guessing undocumented semantics.
+- Output dialect: **EMI 2400 PROMPTS ROP V1.4**
+- Initial part family: **round tube / pipe**
+- Initial feature scope:
+  - Straight cuts
+  - Mitered end cuts
+  - Fishmouth / saddle / cope end cuts
+  - Simple holes (when practical)
+- Production constraint: **nesting multiple parts into one 21-foot stick (252.0 in nominal)**
 
-## Development Setup
+## Current scope (bootstrap phase)
 
-From the repository root:
+This repository is currently focused on:
+
+- Internal data models for parts, features, nests, and machine programs.
+- EMI-oriented program section abstractions (header, setup, cut sequence, prompts, footer).
+- CLI scaffolding for inspection and sample program emission.
+- `.CNC` reverse-engineering parser utility that emits structured JSON-like output.
+
+## Planned phases
+
+1. **Reverse-engineering / internal data model**
+2. **EMI writer/post layer (ROP V1.4 style)**
+3. **Developer parser tooling for archived `.CNC` analysis**
+4. **Geometry input and feature extraction (STEP/STP first for round tube)**
+5. **21' stick nesting workflow**
+
+This ordering is intentional: the biggest risk is geometry/feature extraction, not text emission.
+
+## Architecture direction
+
+The design leaves room for both future import paths:
+
+- `STP -> EMI .CNC`
+- `NC1 -> EMI .CNC`
+
+Even though STP is the business goal, NC1 may provide an earlier path for geometry ingestion and validation.
+
+## Development quickstart
 
 ```bash
-python -m pip install -e .
-```
-
-Run CLI checks:
-
-```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
 stptocnc --help
-python -m stptocnc.cli.main --help
 ```
 
-NC1 conversion command:
+## CLI commands (initial)
 
-```bash
-stptocnc convert-nc1 path/to/input.nc1 path/to/output.cnc
-```
+> Run `python -m pip install -e .` from the repo root before using CLI commands.
 
-Inspection commands (structured JSON):
-
-```bash
-stptocnc inspect-nc1 docs/pp1016.nc1
-stptocnc inspect-cnc docs/pp1016-QC.cnc
-```
-
-> This project targets EMI-specific `.CNC` output and does not target generic G-code.
-
-## Scope guidance
-
-- Round tube / pipe first.
-- Nesting into 21 ft / 252 in sticks is required.
-- Keep unknown machine semantics explicit; do not invent undocumented behavior.
-
-## Short roadmap summary
-
-1. Parser / inspection
-2. Writer / post
-3. NC1 import
-4. STP import
-5. Nesting engine
+- `stptocnc inspect-cnc path/to/file.CNC`
+- `stptocnc emit-sample-cnc`
+- `stptocnc inspect-step path/to/file.stp`
+- `stptocnc inspect-nc1 path/to/file.nc1`
 
 ## Repository layout
 
 ```text
 README.md
-AGENTS.md
 pyproject.toml
 src/stptocnc/
   models/
@@ -71,10 +75,10 @@ src/stptocnc/
   post/
   nesting/
   cli/
-docs/
 tests/
+docs/
 ```
 
 ## License posture
 
-No permissive open-source license is included at this stage.
+No permissive open-source license is added at this stage.
