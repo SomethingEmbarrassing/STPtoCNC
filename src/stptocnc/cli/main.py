@@ -9,7 +9,7 @@ from pathlib import Path
 from stptocnc.importers import parse_nc1_file
 from stptocnc.parsers import inspect_cnc_file, inspect_nc1_file
 from stptocnc.post.emi_writer import emit_minimal_sample, emit_nc1_part_to_emi
-from stptocnc.workflows import finalize_nest_run
+from stptocnc.workflows import finalize_nest_run, run_operator_test_interface
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -36,6 +36,15 @@ def _build_parser() -> argparse.ArgumentParser:
     finalize.add_argument("inputs", nargs="+", type=Path, help="NC1 input files")
     finalize.add_argument("--cutlist", required=True, type=Path, help="Output .xlsx cut list path")
     finalize.add_argument("--cnc-dir", type=Path, help="Optional output directory for placeholder nested CNC files")
+
+    operator_run = sub.add_parser(
+        "operator-run",
+        help="Build operator-facing test-run outputs (HTML view, cut list, summary JSON, optional CNC files)",
+    )
+    operator_run.add_argument("input_path", type=Path, help="Path to NC1 file or directory containing NC1 files")
+    operator_run.add_argument("--output-dir", required=True, type=Path, help="Output directory for generated artifacts")
+    operator_run.add_argument("--no-recursive", action="store_true", help="Only scan top-level directory for NC1 files")
+    operator_run.add_argument("--no-cnc", action="store_true", help="Disable placeholder nested CNC output files")
 
     return parser
 
@@ -84,6 +93,16 @@ def main() -> int:
             nc1_files=[str(path) for path in args.inputs],
             cutlist_output=args.cutlist,
             cnc_output_dir=args.cnc_dir,
+        )
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "operator-run":
+        result = run_operator_test_interface(
+            input_path=args.input_path,
+            output_dir=args.output_dir,
+            recursive=not args.no_recursive,
+            emit_cnc=not args.no_cnc,
         )
         print(json.dumps(result, indent=2))
         return 0

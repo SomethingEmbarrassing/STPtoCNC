@@ -46,6 +46,19 @@ Finalize run (nested artifacts + operator cut list):
 stptocnc finalize-nest docs/pp1007.nc1 docs/pp1016.nc1 --cutlist out/cutlist.xlsx --cnc-dir out/cnc
 ```
 
+Operator test-run interface (loads NC1 files, creates suggested linear nests, and writes an HTML operator view):
+
+```bash
+stptocnc operator-run docs --output-dir out/operator-run
+```
+
+Outputs are written to `out/operator-run/`:
+- `operator_nest_view.html` (operator-facing interface)
+- `cutlist.xlsx` (CutList worksheet for shop use)
+- `nests_snapshot.json` (detailed ordered placement snapshot)
+- `run_summary.json` (run metadata)
+- `cnc/` (placeholder nested CNC artifacts unless `--no-cnc` is passed)
+
 Inspection commands (structured JSON):
 
 ```bash
