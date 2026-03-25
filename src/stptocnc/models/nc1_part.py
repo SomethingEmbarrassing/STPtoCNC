@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from stptocnc.config import ProfileFamily
-
 
 @dataclass(slots=True)
 class TubeEndSpec:
@@ -25,8 +23,4 @@ class Nc1Part:
     length_in: float
     end1: TubeEndSpec
     end2: TubeEndSpec
-    quantity: int = 1
-    quantity_source: str = "default"
-    profile_designation: str | None = None
-    profile_family: ProfileFamily = ProfileFamily.UNKNOWN
     source_path: str | None = None

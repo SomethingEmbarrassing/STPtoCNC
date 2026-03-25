@@ -1,41 +1,44 @@
 # STPtoCNC Roadmap
 
-## Target output
-
-- **EMI 2400 PROMPTS ROP V1.4** `.CNC`
-- NC1-driven workflow to one nested `.CNC` output per stock stick
-
 ## Phases
 
-1. Parser / inspection
-2. Writer / post
-3. NC1 import normalization (quantity + profile families)
-4. STP import
-5. Nesting and linear operator assignment workflow
+1. **Reverse engineering + data model**
+   - Refine typed representation of parts/features/nests/program blocks.
+   - Parse archived EMI `.CNC` examples into structured JSON for comparison.
+2. **EMI writer / post output layer**
+   - Emit stable ROP V1.4-style outputs from structured machine operations.
+   - Track unknown/assumed semantics with explicit placeholders.
+3. **Input importers**
+   - Implement NC1 inspection/import path for early geometry extraction.
+   - Implement STEP/STP import and round-tube feature extraction.
+4. **Nesting engine**
+   - Implement multi-part nesting into one 252 in stick.
+   - Add configurable chuck loss, scrap, and minimum-gap constraints.
+5. **Production hardening**
+   - Regression tests using matched source inputs and expected `.CNC` output.
+   - Validation on shop-floor sample runs.
 
-## Current nesting assumptions
+## Key risks
 
-- Stock defaults by profile family (editable):
-  - Pipe: **252.0 in**
-  - HSS: **240.0 in**
-  - Angle: **240.0 in**
-- NC1 quantity should be respected when present; fallback is quantity=1.
-- Part instances are expanded from quantity before nesting placement.
-- Nesting UI target is a linear bar/strip layout, not a 3D model viewer.
-- Adjacency trim rule helper (current):
-  - first part on fresh stick: no trim
-  - between adjacent parts: +0.25 in only when previous end is not flat-compatible for next start
-  - unknown end semantics default conservative (trim)
-  - TODO: replace placeholder end-condition detection with real feature-derived logic.
+- **Geometry extraction uncertainty** from STEP solids is the largest technical risk.
+- **Undocumented machine semantics** in legacy posts can cause output mismatch.
+- **Sample coverage risk** if archived inputs are not representative.
 
-## Major risks
+## Working assumptions
 
-- Feature extraction quality from STP solids.
-- Undocumented EMI semantics in legacy programs/posts.
-- Need for matched sample sets to validate translation quality.
+- Target dialect for v1 is **EMI 2400 PROMPTS ROP V1.4**.
+- Nominal stock length is **252.0 in** (21 feet).
+- Multiple parts may be nested into one stick.
+- Source inputs should eventually include both **STEP/STP** and **NC1**.
+- Chuck loss, scrap allowances, and minimum gap must remain configurable.
 
 ## Next required sample files
 
-- Multi-part NC1 set meant to share one stock stick.
-- Matching accepted nested EMI `.CNC` output for that stick.
-- Additional non-round examples with known BO/KO/SI intent annotations.
+1. Archived EMI `.CNC` files that represent accepted ROP V1.4 production outputs.
+2. Matched part source files for those programs:
+   - STEP/STP examples
+   - NC1 examples (if available)
+3. Nest metadata, if available:
+   - Part order
+   - Cut sequence intent
+   - Known setup assumptions
