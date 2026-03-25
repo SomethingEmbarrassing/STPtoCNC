@@ -18,34 +18,14 @@ python -m stptocnc.cli.main --help
 ```
 
 ## Scope guidance
-- Prioritize **round tube / pipe** workflows first for production writer behavior.
-- Preserve parser-first support for HSS and angle NC1 records.
-- Support configurable stock defaults by profile family (pipe=252 in, hss=240 in, angle=240 in).
-- Use NC1 quantity when present, otherwise default quantity to 1 (user-overridable later).
+- Prioritize **round tube / pipe** workflows first.
+- Support nesting into **21 ft / 252 in** stock sticks.
 - Output is EMI-specific: **do not target generic G-code**.
 - **Do not assume undocumented M-codes**; keep unknown semantics explicit.
-
-## Nesting direction (future UI assumption)
-- UI intent is linear stock assignment (drag/drop on a stick bar), not a full 3D viewer.
-- Domain should expose stock length, used length, remaining length, and placements for this.
-- Adjacency trim rule:
-  - first part on fresh stock gets no trim
-  - trim (0.25 in) only when previous end is not compatible with next start
-  - unknown end semantics default conservative (trim)
 
 ## Development priorities
 1. CNC parser
 2. CNC writer
 3. NC1 importer
 4. STP importer
-5. nesting engine + linear assignment workflow
-
-
-## Finalize-time output
-- Finalize workflow should emit nested CNC artifacts and an operator cut list `.xlsx`.
-- Cut list is one flat worksheet (`CutList`) with report header + detailed grouped-by-nest rows.
-- Do not collapse sequence rows if it loses cut order.
-- Normalize material display for operators:
-  - HSS -> HSS form
-  - Angle -> L form
-  - Pipe -> `PIPE <size> SCH <schedule>`
+5. nesting engine

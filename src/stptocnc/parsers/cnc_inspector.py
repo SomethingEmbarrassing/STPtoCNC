@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import json
 import re
 from pathlib import Path
 from typing import Any
@@ -57,19 +58,13 @@ class ParsedLine:
         }
 
 
-def inspect_cnc_text(text: str, source_path: str | None = None) -> dict[str, Any]:
+def inspect_cnc_text(text: str) -> dict[str, Any]:
     """Inspect CNC source text and return structured analysis."""
     parsed_lines: list[ParsedLine] = []
     section_counts: dict[str, int] = {}
 
-    total_comments = 0
-    total_variables = 0
-    motion_line_count = 0
-    prompt_line_count = 0
-    g_codes: set[str] = set()
-    m_codes: set[str] = set()
-
     for idx, raw_line in enumerate(text.splitlines(), start=1):
+        line = raw_line.strip()
         parsed = ParsedLine(
             line_number=idx,
             raw=raw_line,
@@ -82,31 +77,11 @@ def inspect_cnc_text(text: str, source_path: str | None = None) -> dict[str, Any
         )
         section = parsed.probable_section
         section_counts[section] = section_counts.get(section, 0) + 1
-
-        total_comments += len(parsed.comments)
-        total_variables += len(parsed.variables)
-        if parsed.motion_words:
-            motion_line_count += 1
-        if parsed.prompts:
-            prompt_line_count += 1
-        g_codes.update(code.upper() for code in parsed.g_codes)
-        m_codes.update(code.upper() for code in parsed.m_codes)
-
         parsed_lines.append(parsed)
 
     return {
-        "status": "ok",
-        "file_path": source_path,
         "line_count": len(parsed_lines),
         "sections": section_counts,
-        "summary": {
-            "comment_count": total_comments,
-            "variable_count": total_variables,
-            "motion_line_count": motion_line_count,
-            "prompt_line_count": prompt_line_count,
-            "g_codes": sorted(g_codes),
-            "m_codes": sorted(m_codes),
-        },
         "lines": [line.to_dict() for line in parsed_lines],
     }
 
@@ -115,4 +90,9 @@ def inspect_cnc_file(path: str | Path) -> dict[str, Any]:
     """Inspect a CNC file from disk."""
     file_path = Path(path)
     text = file_path.read_text(encoding="utf-8")
-    return inspect_cnc_text(text, source_path=str(file_path))
+    return inspect_cnc_text(text)
+
+
+def inspect_cnc_file_to_json(path: str | Path, indent: int = 2) -> str:
+    """Inspect a file and return JSON output for debugging workflows."""
+    return json.dumps(inspect_cnc_file(path), indent=indent)
