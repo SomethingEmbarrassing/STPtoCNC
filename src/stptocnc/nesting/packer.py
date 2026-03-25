@@ -52,6 +52,10 @@ def pack_instances_first_fit(instances: list[PartInstance], defaults: NestingDef
             length_in=instance.length_in,
             transition_trim_before_in=decision.trim_before_next_in,
             transition_reason=decision.reason,
+            start_offset_in=0.0,  # TODO: derive from explicit start-feature geometry where available.
+            profile_designation=instance.profile_designation,
+            material=instance.material,
+            source_file=instance.source_path,
         )
         current.placements.append(placement)
         previous_instance = instance

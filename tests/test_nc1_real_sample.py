@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from stptocnc.importers.nc1_parser import parse_nc1_file
+from stptocnc.config import ProfileFamily
 
 
 def test_parse_pp1016_sample_file() -> None:
@@ -17,3 +18,6 @@ def test_parse_pp1016_sample_file() -> None:
     assert part.end2.angle_deg > 0
     assert part.end1.join_diameter_in > 0
     assert part.end2.join_diameter_in > 0
+    assert part.quantity == 2
+    assert part.quantity_source == "nc1"
+    assert part.profile_family == ProfileFamily.PIPE

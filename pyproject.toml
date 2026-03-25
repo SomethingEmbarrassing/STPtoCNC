@@ -9,7 +9,11 @@ description = "EMI 2400 ROP V1.4-oriented STP/NC1 to .CNC conversion toolkit"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "STPtoCNC Team" }]
-dependencies = []
+dependencies = ["openpyxl>=3.1"]
+
+
+[project.optional-dependencies]
+dev = ["pytest"]
 
 [project.scripts]
 stptocnc = "stptocnc.cli.main:main"

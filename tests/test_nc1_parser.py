@@ -24,3 +24,9 @@ def test_parse_nc1_text_extracts_required_fields() -> None:
     assert part.end1.join_diameter_in == 1.5
     assert part.end2.angle_deg == 20.0
     assert part.end2.join_diameter_in == 1.25
+
+
+def test_quantity_defaults_to_one_when_missing() -> None:
+    part = parse_nc1_text(SAMPLE_NC1)
+    assert part.quantity == 1
+    assert part.quantity_source == "default"
