@@ -1,72 +1,135 @@
 # STPtoCNC
 
-STPtoCNC is a Python application for converting tube/pipe part definitions into **EMI 2400** machine `.CNC` programs, with output conventions aligned to the **EMI 2400 PROMPTS ROP V1.4** post family.
+STPtoCNC is a Python toolkit for converting tube/pipe and profile-part definitions into **EMI 2400** `.CNC` programs aligned to the **EMI 2400 PROMPTS ROP V1.4** family.
 
-## Why this project exists
+## Purpose
 
-Our workflow needs reliable program generation for a specific machine and post style used in production. This project is intentionally **EMI-specific** and is **not** a generic CAM or generic G-code generator.
+This repository is intentionally machine/post specific.
+It is **not** a generic CAM or generic G-code project.
 
-## Primary target
+## Current focus
 
-- Output dialect: **EMI 2400 PROMPTS ROP V1.4**
-- Initial part family: **round tube / pipe**
-- Initial feature scope:
-  - Straight cuts
-  - Mitered end cuts
-  - Fishmouth / saddle / cope end cuts
-  - Simple holes (when practical)
-- Production constraint: **nesting multiple parts into one 21-foot stick (252.0 in nominal)**
+- Build parser-first tooling for archived `.CNC` and `.nc1` analysis.
+- Maintain a clean internal model for part features and machine operations.
+- Emit controlled, minimal EMI-style program output for iterative validation.
+- Inspect PIPE/HSS/ANGLE NC1 records (including BO/KO when present) without guessing undocumented semantics.
+- Prepare NC1-driven linear nesting foundations (stock defaults, quantity expansion, and placement math).
 
-## Current scope (bootstrap phase)
+## Development Setup
 
-This repository is currently focused on:
-
-- Internal data models for parts, features, nests, and machine programs.
-- EMI-oriented program section abstractions (header, setup, cut sequence, prompts, footer).
-- CLI scaffolding for inspection and sample program emission.
-- `.CNC` reverse-engineering parser utility that emits structured JSON-like output.
-
-## Planned phases
-
-1. **Reverse-engineering / internal data model**
-2. **EMI writer/post layer (ROP V1.4 style)**
-3. **Developer parser tooling for archived `.CNC` analysis**
-4. **Geometry input and feature extraction (STEP/STP first for round tube)**
-5. **21' stick nesting workflow**
-
-This ordering is intentional: the biggest risk is geometry/feature extraction, not text emission.
-
-## Architecture direction
-
-The design leaves room for both future import paths:
-
-- `STP -> EMI .CNC`
-- `NC1 -> EMI .CNC`
-
-Even though STP is the business goal, NC1 may provide an earlier path for geometry ingestion and validation.
-
-## Development quickstart
+From the repository root:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-stptocnc --help
+python -m pip install -e .
 ```
 
-## CLI commands (initial)
+Run CLI checks:
 
-> Run `python -m pip install -e .` from the repo root before using CLI commands.
+```bash
+stptocnc --help
+python -m stptocnc.cli.main --help
+```
 
-- `stptocnc inspect-cnc path/to/file.CNC`
-- `stptocnc emit-sample-cnc`
-- `stptocnc inspect-step path/to/file.stp`
-- `stptocnc inspect-nc1 path/to/file.nc1`
+If tests fail during collection with `ModuleNotFoundError: No module named 'openpyxl'`,
+re-run the editable install command above to install runtime dependencies from
+`pyproject.toml`.
+
+NC1 conversion command:
+
+```bash
+stptocnc convert-nc1 path/to/input.nc1 path/to/output.cnc
+```
+
+Finalize run (nested artifacts + operator cut list):
+
+```bash
+stptocnc finalize-nest docs/pp1007.nc1 docs/pp1016.nc1 --cutlist out/cutlist.xlsx --cnc-dir out/cnc
+```
+
+Operator test-run interface (loads NC1 files, creates suggested linear nests, and writes an HTML operator view):
+
+```bash
+stptocnc operator-run docs --output-dir out/operator-run
+```
+
+Outputs are written to `out/operator-run/`:
+- `operator_nest_view.html` (operator-facing interface)
+- `cutlist.xlsx` (CutList worksheet for shop use)
+- `nests_snapshot.json` (detailed ordered placement snapshot)
+- `run_summary.json` (run metadata)
+- `cnc/` (placeholder nested CNC artifacts unless `--no-cnc` is passed)
+
+Inspection commands (structured JSON):
+
+```bash
+stptocnc inspect-nc1 docs/pp1016.nc1
+stptocnc inspect-cnc docs/pp1016-QC.cnc
+```
+
+## NC1-driven nesting assumptions (current)
+
+- Multiple NC1 inputs should eventually produce **one nested `.CNC` per stock stick**.
+- Stock-length defaults are profile-family based (configurable):
+  - Pipe: `252.0 in` (21')
+  - HSS: `240.0 in` (20')
+  - Angle: `240.0 in` (20')
+- NC1 quantity is used when present; otherwise default quantity is `1`.
+- Nest visualization target is **linear** (stock bar / cut strip), not 3D solids.
+- Adjacency trim inference (current helper):
+  - First part on a fresh stick gets **no leading trim** (fresh raw stock is flat).
+  - Between adjacent parts, trim is added **only when previous end is not flat-compatible for next start**.
+  - Trim value, when needed, is fixed at `0.25 in` into fresh raw stock.
+  - Unknown end semantics default conservative (trim inserted).
+  - TODO: wire this to robust NC1-derived end-feature classification.
+
+
+## Operator cut list export (single-sheet XLSX)
+
+When a nest run is finalized, the framework exports one workbook with one sheet (`CutList`) containing:
+- top report header: title, date, time, total nests, total pieces, grouped stock summary
+- detailed rows grouped by nest, preserving cut order
+- required operator columns:
+  - Nest ID (nest filename)
+  - Cut Order
+  - Piece Mark
+  - Material Shape (normalized)
+  - Piece Length
+  - Start Offset
+  - Drop
+  - Trim Cut
+
+Material display normalization rules:
+- HSS: stays in HSS form
+- Angle: stays in L form
+- Pipe: displayed as `PIPE <size> SCH <schedule>`
+
+Current assumptions:
+- one row per placed part instance (no quantity collapsing)
+- trim-before-piece comes from adjacency inference
+- start offset defaults to 0.0 until richer start-feature offsets are available
+
+> This project targets EMI-specific `.CNC` output and does not target generic G-code.
+
+## Scope guidance
+
+- Round tube / pipe first for production output.
+- HSS and angle are currently inspection/parser-first.
+- Nesting into configurable stock sticks is required.
+- Keep unknown machine semantics explicit; do not invent undocumented behavior.
+
+## Short roadmap summary
+
+1. Parser / inspection
+2. Writer / post
+3. NC1 import
+4. STP import
+5. Nesting engine + linear operator assignment UI support
 
 ## Repository layout
 
 ```text
 README.md
+AGENTS.md
 pyproject.toml
 src/stptocnc/
   models/
@@ -75,10 +138,11 @@ src/stptocnc/
   post/
   nesting/
   cli/
-tests/
+  config/
 docs/
+tests/
 ```
 
 ## License posture
 
-No permissive open-source license is added at this stage.
+No permissive open-source license is included at this stage.
