@@ -17,6 +17,32 @@ def _maybe_float(value: str) -> float | None:
         return None
 
 
+def _parse_bo_ko_payload(payload: str) -> dict[str, Any]:
+    """Parse BO/KO record payload while preserving unknown semantics."""
+    tokens = payload.split()
+    orientation = tokens[0] if tokens else None
+
+    station_token = tokens[1] if len(tokens) > 1 else None
+    station_value = None
+    station_axis = None
+    if station_token:
+        m = re.match(r"([-+]?\d+(?:\.\d+)?)([a-zA-Z])?", station_token)
+        if m:
+            station_value = _maybe_float(m.group(1))
+            station_axis = m.group(2)
+
+    y_value = _maybe_float(tokens[2]) if len(tokens) > 2 else None
+    z_or_diam_value = _maybe_float(tokens[3]) if len(tokens) > 3 else None
+
+    return {
+        "orientation": orientation,
+        "station": {"value": station_value, "axis": station_axis} if station_token else None,
+        "coord_2": y_value,
+        "coord_3_or_diameter": z_or_diam_value,
+        "raw_payload": payload,
+    }
+
+
 def inspect_nc1_text(text: str, source_path: str | None = None) -> dict[str, Any]:
     """Inspect NC1 text and return structured JSON-safe data.
 
@@ -68,10 +94,7 @@ def inspect_nc1_text(text: str, source_path: str | None = None) -> dict[str, Any
     profile = None
     for row in lines:
         s = row.strip()
-        if re.search(r"\b(?:PIPE|HSS|CH|L|W|C)\b|\bSCH\d+\b", s, flags=re.IGNORECASE):
-            profile = s
-            break
-        if "PIPE" in s.upper():
+        if re.search(r"^(?:PIPE|HSS|L\d)|\bSCH\d+\b", s, flags=re.IGNORECASE):
             profile = s
             break
 
@@ -83,25 +106,25 @@ def inspect_nc1_text(text: str, source_path: str | None = None) -> dict[str, Any
             break
 
     overall_length = None
-    b_rows = records.get("B", [])
-    numeric_b: list[float] = []
-    for row in b_rows:
-        payload = row["payload"]
-        if _maybe_float(payload) is not None:
-            numeric_b.append(float(payload))
-    if numeric_b:
+    numeric_section_values: list[float] = []
+    for section in ("B", "M", "L"):
+        for row in records.get(section, []):
+            payload = row["payload"]
+            value = _maybe_float(payload)
+            if value is not None:
+                numeric_section_values.append(value)
+    if numeric_section_values:
         overall_length = {
-            "raw_value": max(numeric_b),
+            "raw_value": max(numeric_section_values),
             "units": "unknown",
-            "source": "B block max numeric",
+            "source": "max numeric from B/M/L section",
         }
 
     end_prep: dict[str, Any] = {}
     ak_rows = records.get("AK", [])
     if ak_rows:
         end_prep["ak_line_count"] = len(ak_rows)
-        first_payload = ak_rows[0]["payload"]
-        end_prep["ak_header"] = first_payload
+        end_prep["ak_header"] = ak_rows[0]["payload"]
 
         col4_values: list[float] = []
         for row in ak_rows:
@@ -113,13 +136,22 @@ def inspect_nc1_text(text: str, source_path: str | None = None) -> dict[str, Any
         if col4_values:
             end_prep["col4_range"] = {"min": min(col4_values), "max": max(col4_values)}
 
+    bo_entries = [
+        {"line": row["line"], **_parse_bo_ko_payload(row["payload"])}
+        for row in records.get("BO", [])
+    ]
+    ko_entries = [
+        {"line": row["line"], **_parse_bo_ko_payload(row["payload"])}
+        for row in records.get("KO", [])
+    ]
+
     contour_or_hole_records = {
         prefix: entries
         for prefix, entries in records.items()
         if prefix in {"AK", "BO", "SI", "IK", "KO", "PU"}
     }
 
-    known_prefixes = {"ST", "EN", "AK", "B", "BO", "SI", "IK", "KO", "PU", "PU", "CM"}
+    known_prefixes = {"ST", "EN", "AK", "B", "M", "L", "BO", "SI", "IK", "KO", "PU", "CM"}
     for prefix, entries in records.items():
         if prefix not in known_prefixes:
             unknown_records[prefix].extend(entries)
@@ -134,6 +166,8 @@ def inspect_nc1_text(text: str, source_path: str | None = None) -> dict[str, Any
         "overall_length": overall_length,
         "end_preparation": end_prep if end_prep else None,
         "contour_or_hole_records": contour_or_hole_records,
+        "bo_records": bo_entries,
+        "ko_records": ko_entries,
         "record_types": sorted(distinct_prefixes),
         "records": records,
         "unknown_records": unknown_records,

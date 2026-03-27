@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime
+from fractions import Fraction
 from pathlib import Path
 import re
 
@@ -49,6 +50,19 @@ def normalize_material_shape(profile_designation: str | None) -> str:
     return raw
 
 
+def format_inches_fraction(value_in: float) -> str:
+    """Format inches to nearest 1/16 for operator readability."""
+    rounded = round(value_in * 16.0) / 16.0
+    whole = int(rounded)
+    frac = rounded - whole
+    frac_part = Fraction(frac).limit_denominator(16)
+    if frac_part.numerator == 0:
+        return f'{whole}"'
+    if whole == 0:
+        return f'{frac_part.numerator}/{frac_part.denominator}"'
+    return f'{whole} {frac_part.numerator}/{frac_part.denominator}"'
+
+
 def write_cutlist_workbook(nests: list[LinearNest], output_path: str | Path, report_dt: datetime | None = None) -> Path:
     """Write a single-sheet operator cut list workbook grouped by nest."""
     dt = report_dt or datetime.now()
@@ -61,7 +75,10 @@ def write_cutlist_workbook(nests: list[LinearNest], output_path: str | Path, rep
 
     stock_counter: Counter[str] = Counter()
     for nest in nests:
-        key = f"{nest.profile_family.value.upper()} @ {nest.stock_length_in:.3f} in"
+        stock_shape = "UNKNOWN"
+        if nest.placements:
+            stock_shape = normalize_material_shape(nest.placements[0].profile_designation)
+        key = f"{stock_shape} @ {format_inches_fraction(nest.stock_length_in)}"
         stock_counter[key] += 1
 
     ws.append(["Nest Cut List"])
@@ -86,10 +103,10 @@ def write_cutlist_workbook(nests: list[LinearNest], output_path: str | Path, rep
                     order,
                     placement.part_mark,
                     normalize_material_shape(placement.profile_designation),
-                    round(placement.length_in, 3),
-                    round(placement.start_offset_in, 3),
-                    round(drop, 3),
-                    round(placement.transition_trim_before_in, 3),
+                    format_inches_fraction(placement.length_in),
+                    format_inches_fraction(placement.start_offset_in),
+                    format_inches_fraction(drop),
+                    format_inches_fraction(placement.transition_trim_before_in),
                     notes,
                     placement.source_file,
                 ]

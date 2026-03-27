@@ -46,6 +46,8 @@ def _build_parser() -> argparse.ArgumentParser:
     operator_run.add_argument("--no-recursive", action="store_true", help="Only scan top-level directory for NC1 files")
     operator_run.add_argument("--no-cnc", action="store_true", help="Disable placeholder nested CNC output files")
 
+    sub.add_parser("launch-gui", help="Launch desktop operator GUI (Windows-focused Tkinter app)")
+
     return parser
 
 
@@ -105,6 +107,12 @@ def main() -> int:
             emit_cnc=not args.no_cnc,
         )
         print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "launch-gui":
+        from stptocnc.gui import launch_gui
+
+        launch_gui()
         return 0
 
     parser.error(f"Unknown command: {args.command}")

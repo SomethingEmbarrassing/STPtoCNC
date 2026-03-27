@@ -5,6 +5,7 @@ from openpyxl import load_workbook
 from stptocnc.models.nesting import LinearNest, NestPlacement
 from stptocnc.config import ProfileFamily
 from stptocnc.reports import normalize_material_shape, write_cutlist_workbook
+from stptocnc.reports.cutlist_xlsx import format_inches_fraction
 
 
 def _build_sample_nests() -> list[LinearNest]:
@@ -86,3 +87,24 @@ def test_material_normalization_rules() -> None:
     assert normalize_material_shape("HSS8X4X1/4") == "HSS8X4X1/4"
     assert normalize_material_shape("L2X2X1/4") == "L2X2X1/4"
     assert normalize_material_shape("PIPE1-1/2SCH40") == "PIPE 1-1/2 SCH 40"
+
+
+def test_fractional_inch_formatting_and_stock_summary_shape(tmp_path: Path) -> None:
+    output = tmp_path / "cutlist.xlsx"
+    write_cutlist_workbook(_build_sample_nests(), output)
+    ws = load_workbook(output)["CutList"]
+
+    # Raw stock summary uses operator-readable shape with dimensions.
+    assert "PIPE 1-1/2 SCH 40 @ 252\"" in str(ws["B6"].value)
+    assert "HSS8X4X1/4 @ 240\"" in str(ws["B6"].value)
+
+    # Detail rows use nearest 1/16" string display.
+    detail_rows = [row for row in ws.iter_rows(values_only=True) if row and row[0] == "nest-1.cnc"]
+    assert detail_rows[0][4] == '20"'
+    assert detail_rows[1][7] == '1/4"'
+
+
+def test_format_inches_fraction_rounds_to_sixteenth() -> None:
+    assert format_inches_fraction(1.124) == '1 1/8"'
+    assert format_inches_fraction(1.13) == '1 1/8"'
+    assert format_inches_fraction(0.24) == '1/4"'

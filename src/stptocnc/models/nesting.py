@@ -32,6 +32,12 @@ class PartInstance:
     profile_designation: str | None = None
     material: str | None = None
     source_path: str | None = None
+    outer_diameter_in: float | None = None
+    wall_thickness_in: float | None = None
+    end1_angle_deg: float | None = None
+    end1_join_diameter_in: float | None = None
+    end2_angle_deg: float | None = None
+    end2_join_diameter_in: float | None = None
 
     @property
     def requires_flat_start(self) -> bool:
@@ -58,6 +64,12 @@ class NestPlacement:
     profile_designation: str | None = None
     material: str | None = None
     source_file: str | None = None
+    outer_diameter_in: float | None = None
+    wall_thickness_in: float | None = None
+    end1_angle_deg: float | None = None
+    end1_join_diameter_in: float | None = None
+    end2_angle_deg: float | None = None
+    end2_join_diameter_in: float | None = None
 
     @property
     def end_in(self) -> float:
@@ -134,11 +146,12 @@ def infer_start_condition_from_nc1(part: "Nc1Part") -> EndCondition:
     return EndCondition.UNKNOWN
 
 
-def expand_part_instances(parts: list["Nc1Part"]) -> list[PartInstance]:
+def expand_part_instances(parts: list["Nc1Part"], quantity_overrides: dict[str, int] | None = None) -> list[PartInstance]:
     """Expand NC1 part quantities into explicit linear nesting instances."""
     instances: list[PartInstance] = []
+    overrides = quantity_overrides or {}
     for part in parts:
-        qty = max(1, part.quantity)
+        qty = max(1, overrides.get(part.part_mark, part.quantity))
         for index in range(qty):
             instances.append(
                 PartInstance(
@@ -151,6 +164,12 @@ def expand_part_instances(parts: list["Nc1Part"]) -> list[PartInstance]:
                     profile_designation=part.profile_designation,
                     material=part.material,
                     source_path=part.source_path,
+                    outer_diameter_in=part.outer_diameter_in,
+                    wall_thickness_in=part.wall_thickness_in,
+                    end1_angle_deg=part.end1.angle_deg,
+                    end1_join_diameter_in=part.end1.join_diameter_in,
+                    end2_angle_deg=part.end2.angle_deg,
+                    end2_join_diameter_in=part.end2.join_diameter_in,
                 )
             )
     return instances

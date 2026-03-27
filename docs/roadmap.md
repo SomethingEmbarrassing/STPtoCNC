@@ -13,6 +13,8 @@
 4. STP import
 5. Nesting and linear operator assignment workflow
 6. Finalize-time operator cut list export (single-sheet `.xlsx`)
+7. Windows desktop operator GUI (file selection, preview, finalize/export)
+8. Windows packaging + installer pipeline (PyInstaller + Inno Setup)
 
 ## Current nesting assumptions
 
@@ -34,6 +36,7 @@
 - Feature extraction quality from STP solids.
 - Undocumented EMI semantics in legacy programs/posts.
 - Need for matched sample sets to validate translation quality.
+- Missing shop-confirmed EMI commands for trim-cut, separator, and stock handling.
 
 ## Next required sample files
 
@@ -49,3 +52,9 @@
 - Detailed rows grouped by nest and preserved cut order.
 - Columns include: Nest ID, Cut Order, Piece Mark, Material Shape, Piece Length, Start Offset, Drop, Trim Cut.
 - Material display normalized for operators (HSS, L, PIPE size+sched).
+- Operator-facing inches shown as nearest 1/16 fractions.
+
+## Current output status
+
+- Finalize now emits real nest-aware EMI-oriented CNC files (not blank placeholders).
+- Unknown EMI semantics are called out explicitly in output comments until matched samples are provided.

@@ -17,6 +17,21 @@ stptocnc --help
 python -m stptocnc.cli.main --help
 ```
 
+## GUI launch (operator-primary)
+
+```bash
+stptocnc-gui
+python -m stptocnc.cli.main launch-gui
+```
+
+## Packaging quick checks (Windows)
+
+```bash
+python -m pip install -e ".[packaging]"
+python packaging/tools/build_exe.py --clean
+python packaging/tools/build_installer.py --iscc "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"
+```
+
 ## Scope guidance
 - Prioritize **round tube / pipe** workflows first for production writer behavior.
 - Preserve parser-first support for HSS and angle NC1 records.
@@ -26,7 +41,7 @@ python -m stptocnc.cli.main --help
 - **Do not assume undocumented M-codes**; keep unknown semantics explicit.
 
 ## Nesting direction (future UI assumption)
-- UI intent is linear stock assignment (drag/drop on a stick bar), not a full 3D viewer.
+- UI intent is linear stock assignment on a stock bar, not a full 3D viewer.
 - Domain should expose stock length, used length, remaining length, and placements for this.
 - Adjacency trim rule:
   - first part on fresh stock gets no trim
@@ -43,6 +58,7 @@ python -m stptocnc.cli.main --help
 
 ## Finalize-time output
 - Finalize workflow should emit nested CNC artifacts and an operator cut list `.xlsx`.
+- Do not emit blank placeholder nested CNC files.
 - Cut list is one flat worksheet (`CutList`) with report header + detailed grouped-by-nest rows.
 - Do not collapse sequence rows if it loses cut order.
 - Normalize material display for operators:

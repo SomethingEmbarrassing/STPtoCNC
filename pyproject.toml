@@ -14,9 +14,11 @@ dependencies = ["openpyxl>=3.1"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
+packaging = ["pyinstaller>=6.0"]
 
 [project.scripts]
 stptocnc = "stptocnc.cli.main:main"
+stptocnc-gui = "stptocnc.gui_entry:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

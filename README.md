@@ -15,13 +15,92 @@ It is **not** a generic CAM or generic G-code project.
 - Inspect PIPE/HSS/ANGLE NC1 records (including BO/KO when present) without guessing undocumented semantics.
 - Prepare NC1-driven linear nesting foundations (stock defaults, quantity expansion, and placement math).
 
-## Development Setup
+## Installation & Launch (Windows-first)
 
 From the repository root:
 
 ```bash
 python -m pip install -e .
 ```
+
+Windows `py` launcher equivalent:
+
+```bash
+py -m pip install -e .
+```
+
+### Operator GUI (primary workflow)
+
+Launch with installed script:
+
+```bash
+stptocnc-gui
+```
+
+Or launch via module:
+
+```bash
+python -m stptocnc.cli.main launch-gui
+```
+
+Windows `py` launcher variant:
+
+```bash
+py -m stptocnc.cli.main launch-gui
+```
+
+Batch shortcut:
+
+```bat
+scripts\launch_stptocnc_gui.bat
+```
+
+The desktop GUI supports:
+- selecting one or more NC1 files
+- editing stock defaults (pipe/hss/angle)
+- optional quantity overrides (`PART=QTY,PART2=QTY`)
+- linear nest preview (parts, trim cuts, drop)
+- finalize/export of nested CNC and cut list outputs
+
+### Packaged Windows `.exe` build (PyInstaller)
+
+Install packaging dependency:
+
+```bash
+python -m pip install -e ".[packaging]"
+```
+
+Build executable:
+
+```bash
+python packaging/tools/build_exe.py --clean
+```
+
+Build artifacts:
+- `dist/STPtoCNC/STPtoCNC.exe` (double-click launch)
+- `build/` intermediate files
+
+### Windows installer build (Inno Setup)
+
+1. Install Inno Setup 6 on Windows.
+2. Build the executable first (section above).
+3. Build installer:
+
+```bash
+python packaging/tools/build_installer.py --iscc "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+```
+
+Installer artifact:
+- `dist/installer/STPtoCNC-Setup.exe`
+
+Operator path (packaged flow):
+1. Run `STPtoCNC-Setup.exe`
+2. Launch from Start Menu/Desktop shortcut
+3. Browse NC1 files
+4. Preview nests
+5. Finalize to export nested `.CNC` and cut list `.xlsx`
+
+### CLI/backend (development + automation)
 
 Run CLI checks:
 
@@ -46,7 +125,7 @@ Finalize run (nested artifacts + operator cut list):
 stptocnc finalize-nest docs/pp1007.nc1 docs/pp1016.nc1 --cutlist out/cutlist.xlsx --cnc-dir out/cnc
 ```
 
-Operator test-run interface (loads NC1 files, creates suggested linear nests, and writes an HTML operator view):
+Operator batch interface (loads NC1 files, creates suggested linear nests, and writes an HTML operator view):
 
 ```bash
 stptocnc operator-run docs --output-dir out/operator-run
@@ -57,7 +136,7 @@ Outputs are written to `out/operator-run/`:
 - `cutlist.xlsx` (CutList worksheet for shop use)
 - `nests_snapshot.json` (detailed ordered placement snapshot)
 - `run_summary.json` (run metadata)
-- `cnc/` (placeholder nested CNC artifacts unless `--no-cnc` is passed)
+- `cnc/` (nested CNC artifacts)
 
 Inspection commands (structured JSON):
 
@@ -109,6 +188,30 @@ Current assumptions:
 - start offset defaults to 0.0 until richer start-feature offsets are available
 
 > This project targets EMI-specific `.CNC` output and does not target generic G-code.
+
+## Nested CNC output status
+
+`finalize-nest` and GUI finalize now emit nest-aware EMI-oriented files with:
+- explicit EMI program header/footer structure
+- per-piece sequencing in nest cut order
+- trim-before-piece annotations
+- per-piece end-loop cut blocks derived from parsed NC1 values
+
+Unknown machine semantics are left explicit in output comments (not blank placeholders),
+including trim-cut machine code mapping details that require shop-specific EMI examples.
+
+## Future packaging
+
+The GUI entry point is isolated as `stptocnc.gui_entry:main`, and packaging assets live under:
+- `packaging/pyinstaller/stptocnc_gui.spec`
+- `packaging/inno/stptocnc_installer.iss`
+- `packaging/tools/build_exe.py`
+- `packaging/tools/build_installer.py`
+
+Future production release path:
+- add code-signing for `.exe` and installer
+- finalize icon/branding resources
+- validate with accepted shop EMI reference nests before wider rollout
 
 ## Scope guidance
 

@@ -152,6 +152,7 @@ def run_operator_test_interface(
     recursive: bool = True,
     emit_cnc: bool = True,
     defaults: NestingDefaults | None = None,
+    quantity_overrides: dict[str, int] | None = None,
 ) -> dict[str, object]:
     """Build artifacts for an operator-visible test run."""
     root = Path(input_path)
@@ -163,10 +164,19 @@ def run_operator_test_interface(
 
     cutlist_path = out_dir / "cutlist.xlsx"
     cnc_dir = out_dir / "cnc" if emit_cnc else None
-    finalize_result = finalize_nest_run(file_strings, cutlist_path, cnc_output_dir=cnc_dir, defaults=defaults)
+    finalize_result = finalize_nest_run(
+        file_strings,
+        cutlist_path,
+        cnc_output_dir=cnc_dir,
+        defaults=defaults,
+        quantity_overrides=quantity_overrides,
+    )
 
     parts = [parse_nc1_file(path) for path in nc1_files]
-    nests = pack_instances_first_fit(expand_part_instances(parts), defaults=defaults).nests
+    nests = pack_instances_first_fit(
+        expand_part_instances(parts, quantity_overrides=quantity_overrides),
+        defaults=defaults,
+    ).nests
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     html_path = out_dir / "operator_nest_view.html"
