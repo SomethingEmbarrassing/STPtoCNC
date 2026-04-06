@@ -125,6 +125,12 @@ Finalize run (nested artifacts + operator cut list):
 stptocnc finalize-nest docs/pp1007.nc1 docs/pp1016.nc1 --cutlist out/cutlist.xlsx --cnc-dir out/cnc
 ```
 
+Finalize run using machine-profile overrides (recommended when mapping commands from PieceMaker documentation):
+
+```bash
+stptocnc finalize-nest docs/pp1007.nc1 docs/pp1016.nc1 --cutlist out/cutlist.xlsx --cnc-dir out/cnc --emi-profile docs/emi_machine_profile.sample.json
+```
+
 Operator batch interface (loads NC1 files, creates suggested linear nests, and writes an HTML operator view):
 
 ```bash
@@ -199,6 +205,17 @@ Current assumptions:
 
 Unknown machine semantics are left explicit in output comments (not blank placeholders),
 including trim-cut machine code mapping details that require shop-specific EMI examples.
+
+## PieceMaker manual alignment (recommended)
+
+Use an EMI machine profile JSON to encode command mappings discovered from shop documentation:
+- sample file: `docs/emi_machine_profile.sample.json`
+- currently configurable: post label, trim cut command, piece completion prompt, nest completion prompt, footer command
+
+When `trim_cut_command` is unset, finalize output will include an explicit note:
+`(TRIM CUT COMMAND NOT CONFIGURED)` so missing semantics are visible during testing.
+
+Detailed alignment checklist: `docs/piecemaker_manual_alignment.md`.
 
 ## Future packaging
 

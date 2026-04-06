@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from stptocnc.config import EmiMachineProfile
 from stptocnc.models import MachineProgram, Nc1Part
 from stptocnc.models.nesting import LinearNest, NestPlacement
 from stptocnc.post.emi_blocks import (
@@ -72,21 +73,22 @@ def emit_nc1_part_to_emi(part: Nc1Part) -> str:
     return "\n".join(lines) + "\n"
 
 
-def emit_nested_nest_to_emi(nest: LinearNest) -> str:
+def emit_nested_nest_to_emi(nest: LinearNest, profile: EmiMachineProfile | None = None) -> str:
     """Emit a usable nest-level EMI-oriented program from a packed linear nest.
 
     This uses known semantics from current NC1 + nesting data and keeps unknown
     machine behaviors explicit as comments, rather than writing blank placeholders.
     """
+    cfg = profile or EmiMachineProfile()
     lines: list[str] = [
         "%",
         f"(PROGRAM {nest.nest_id})",
-        "(POST EMI 2400 PROMPTS ROP V1.4)",
+        f"(POST {cfg.post_label})",
         "G90",
         f"(NEST STOCK LENGTH IN: {nest.stock_length_in:.3f})",
         f"(NEST USED LENGTH IN: {nest.used_length_in:.3f})",
         f"(NEST REMAINING DROP IN: {nest.remaining_length_in:.3f})",
-        "(NOTE: TRIM-CUT MACHINE CODE REQUIRES SHOP-SPECIFIC EMI MAPPING)",
+        "(NOTE: TRIM-CUT COMMAND IS CONFIGURABLE VIA EMI MACHINE PROFILE)",
     ]
 
     for cut_order, placement in enumerate(nest.placements, start=1):
@@ -97,10 +99,14 @@ def emit_nested_nest_to_emi(nest: LinearNest) -> str:
             lines.append(
                 f"(TRIM BEFORE PIECE: {placement.transition_trim_before_in:.3f} IN REASON={placement.transition_reason})"
             )
+            if cfg.trim_cut_command:
+                lines.append(cfg.trim_cut_command)
+            else:
+                lines.append("(TRIM CUT COMMAND NOT CONFIGURED)")
         lines.extend(_emit_placement_end_loops(placement))
-        lines.append("(PIECE COMPLETE)")
+        lines.append(cfg.piece_complete_prompt)
 
-    lines.extend(["(PROMPT REMOVE NESTED STOCK)", "M30", "%"])
+    lines.extend([cfg.nested_complete_prompt, cfg.footer_command, "%"])
     return "\n".join(lines) + "\n"
 
 

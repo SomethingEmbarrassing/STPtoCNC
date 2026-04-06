@@ -59,6 +59,7 @@ python packaging/tools/build_installer.py --iscc "C:\\Program Files (x86)\\Inno 
 ## Finalize-time output
 - Finalize workflow should emit nested CNC artifacts and an operator cut list `.xlsx`.
 - Do not emit blank placeholder nested CNC files.
+- If specific machine commands are known from manuals, map them via an EMI profile input rather than hard-coding.
 - Cut list is one flat worksheet (`CutList`) with report header + detailed grouped-by-nest rows.
 - Do not collapse sequence rows if it loses cut order.
 - Normalize material display for operators:

@@ -9,6 +9,7 @@ from pathlib import Path
 from stptocnc.importers import parse_nc1_file
 from stptocnc.parsers import inspect_cnc_file, inspect_nc1_file
 from stptocnc.post.emi_writer import emit_minimal_sample, emit_nc1_part_to_emi
+from stptocnc.config import EmiMachineProfile
 from stptocnc.workflows import finalize_nest_run, run_operator_test_interface
 
 
@@ -35,7 +36,8 @@ def _build_parser() -> argparse.ArgumentParser:
     finalize = sub.add_parser("finalize-nest", help="Finalize a nest run and export cut list workbook")
     finalize.add_argument("inputs", nargs="+", type=Path, help="NC1 input files")
     finalize.add_argument("--cutlist", required=True, type=Path, help="Output .xlsx cut list path")
-    finalize.add_argument("--cnc-dir", type=Path, help="Optional output directory for placeholder nested CNC files")
+    finalize.add_argument("--cnc-dir", type=Path, help="Optional output directory for nested CNC files")
+    finalize.add_argument("--emi-profile", type=Path, help="Optional JSON machine profile for EMI command mapping")
 
     operator_run = sub.add_parser(
         "operator-run",
@@ -95,6 +97,7 @@ def main() -> int:
             nc1_files=[str(path) for path in args.inputs],
             cutlist_output=args.cutlist,
             cnc_output_dir=args.cnc_dir,
+            machine_profile=EmiMachineProfile.from_json_file(args.emi_profile) if args.emi_profile else None,
         )
         print(json.dumps(result, indent=2))
         return 0
