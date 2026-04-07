@@ -1,0 +1,10 @@
+{
+  "post_label": "EMI 2400 PROMPTS ROP V1.4",
+  "trim_cut_command": "M50 (EXAMPLE TRIM CUT COMMAND - REPLACE FROM PIECEMAKER MANUAL)",
+  "torch_on_command": "M15",
+  "torch_off_command": "M16",
+  "torch_raise_command": "M25",
+  "piece_complete_prompt": "(PIECE COMPLETE)",
+  "nested_complete_prompt": "(PROMPT REMOVE NESTED STOCK)",
+  "footer_command": "M30"
+}
