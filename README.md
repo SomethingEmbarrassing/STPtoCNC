@@ -210,12 +210,18 @@ including trim-cut machine code mapping details that require shop-specific EMI e
 
 Use an EMI machine profile JSON to encode command mappings discovered from shop documentation:
 - sample file: `docs/emi_machine_profile.sample.json`
-- currently configurable: post label, trim cut command, piece completion prompt, nest completion prompt, footer command
+- currently configurable: post label, trim cut command, torch on/off commands, torch raise command, piece completion prompt, nest completion prompt, footer command
 
 When `trim_cut_command` is unset, finalize output will include an explicit note:
 `(TRIM CUT COMMAND NOT CONFIGURED)` so missing semantics are visible during testing.
 
 Detailed alignment checklist: `docs/piecemaker_manual_alignment.md`.
+
+Current implemented PieceMaker table-aligned fields:
+- `END-1 FLAT` / `END-2 FLAT` parsing (`Y`/`N`)
+- `ROTATIONAL OFFSET` parsing
+- flat-cut behavior: joining diameter forced to `200.0` when flat is checked
+- manual-derived command defaults: `M15` torch on, `M16` torch off, `M25` torch raise
 
 ## Future packaging
 

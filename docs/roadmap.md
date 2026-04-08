@@ -59,3 +59,4 @@
 - Finalize now emits real nest-aware EMI-oriented CNC files (not blank placeholders).
 - Unknown EMI semantics are called out explicitly in output comments until matched samples are provided.
 - EMI command mapping can now be provided through machine-profile JSON to encode shop/manual-specific commands.
+- PieceMaker-style fields now parsed for flat-cut flags and rotational offset (further command-level mapping pending).

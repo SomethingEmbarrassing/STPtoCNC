@@ -13,6 +13,7 @@ class TubeEndSpec:
 
     angle_deg: float
     join_diameter_in: float
+    flat_cut: bool = False
 
 
 @dataclass(slots=True)
@@ -31,3 +32,4 @@ class Nc1Part:
     material: str | None = None
     profile_family: ProfileFamily = ProfileFamily.UNKNOWN
     source_path: str | None = None
+    rotational_offset_deg: float = 0.0

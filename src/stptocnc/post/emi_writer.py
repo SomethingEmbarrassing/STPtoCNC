@@ -48,8 +48,15 @@ def _emit_placement_end_loops(placement: NestPlacement) -> list[str]:
     end1_join = placement.end1_join_diameter_in if placement.end1_join_diameter_in is not None else 0.0
     end2_angle = placement.end2_angle_deg if placement.end2_angle_deg is not None else 0.0
     end2_join = placement.end2_join_diameter_in if placement.end2_join_diameter_in is not None else 0.0
+    if placement.end1_flat_cut:
+        end1_join = 200.0
+    if placement.end2_flat_cut:
+        end2_join = 200.0
     return [
+        f"(ROTATIONAL OFFSET: {placement.rotational_offset_deg:.3f})",
+        f"(END1 FLAT: {'Y' if placement.end1_flat_cut else 'N'})",
         * _emit_placeholder_end_loop("END1", end1_angle, end1_join),
+        f"(END2 FLAT: {'Y' if placement.end2_flat_cut else 'N'})",
         * _emit_placeholder_end_loop("END2", end2_angle, end2_join),
     ]
 
@@ -85,6 +92,7 @@ def emit_nested_nest_to_emi(nest: LinearNest, profile: EmiMachineProfile | None 
         f"(PROGRAM {nest.nest_id})",
         f"(POST {cfg.post_label})",
         "G90",
+        "(PIECEMAKER MANUAL REF: TORCH M15/M16, TORCH RAISE M25)",
         f"(NEST STOCK LENGTH IN: {nest.stock_length_in:.3f})",
         f"(NEST USED LENGTH IN: {nest.used_length_in:.3f})",
         f"(NEST REMAINING DROP IN: {nest.remaining_length_in:.3f})",
@@ -92,6 +100,8 @@ def emit_nested_nest_to_emi(nest: LinearNest, profile: EmiMachineProfile | None 
     ]
 
     for cut_order, placement in enumerate(nest.placements, start=1):
+        if cfg.torch_raise_command:
+            lines.append(cfg.torch_raise_command)
         lines.append(
             f"(PIECE {cut_order}: {placement.part_mark} START={placement.offset_in:.3f} LEN={placement.length_in:.3f})"
         )
@@ -103,7 +113,11 @@ def emit_nested_nest_to_emi(nest: LinearNest, profile: EmiMachineProfile | None 
                 lines.append(cfg.trim_cut_command)
             else:
                 lines.append("(TRIM CUT COMMAND NOT CONFIGURED)")
+        if cfg.torch_on_command:
+            lines.append(cfg.torch_on_command)
         lines.extend(_emit_placement_end_loops(placement))
+        if cfg.torch_off_command:
+            lines.append(cfg.torch_off_command)
         lines.append(cfg.piece_complete_prompt)
 
     lines.extend([cfg.nested_complete_prompt, cfg.footer_command, "%"])

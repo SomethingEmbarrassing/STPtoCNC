@@ -66,3 +66,4 @@ python packaging/tools/build_installer.py --iscc "C:\\Program Files (x86)\\Inno 
   - HSS -> HSS form
   - Angle -> L form
   - Pipe -> `PIPE <size> SCH <schedule>`
+- Preserve PieceMaker table semantics where known (e.g., flat-cut flag behavior and rotational offset parsing).

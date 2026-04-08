@@ -62,6 +62,9 @@ def pack_instances_first_fit(instances: list[PartInstance], defaults: NestingDef
             end1_join_diameter_in=instance.end1_join_diameter_in,
             end2_angle_deg=instance.end2_angle_deg,
             end2_join_diameter_in=instance.end2_join_diameter_in,
+            end1_flat_cut=instance.end1_flat_cut,
+            end2_flat_cut=instance.end2_flat_cut,
+            rotational_offset_deg=instance.rotational_offset_deg,
         )
         current.placements.append(placement)
         previous_instance = instance

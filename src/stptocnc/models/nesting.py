@@ -38,6 +38,9 @@ class PartInstance:
     end1_join_diameter_in: float | None = None
     end2_angle_deg: float | None = None
     end2_join_diameter_in: float | None = None
+    end1_flat_cut: bool = False
+    end2_flat_cut: bool = False
+    rotational_offset_deg: float = 0.0
 
     @property
     def requires_flat_start(self) -> bool:
@@ -70,6 +73,9 @@ class NestPlacement:
     end1_join_diameter_in: float | None = None
     end2_angle_deg: float | None = None
     end2_join_diameter_in: float | None = None
+    end1_flat_cut: bool = False
+    end2_flat_cut: bool = False
+    rotational_offset_deg: float = 0.0
 
     @property
     def end_in(self) -> float:
@@ -170,6 +176,9 @@ def expand_part_instances(parts: list["Nc1Part"], quantity_overrides: dict[str, 
                     end1_join_diameter_in=part.end1.join_diameter_in,
                     end2_angle_deg=part.end2.angle_deg,
                     end2_join_diameter_in=part.end2.join_diameter_in,
+                    end1_flat_cut=part.end1.flat_cut,
+                    end2_flat_cut=part.end2.flat_cut,
+                    rotational_offset_deg=part.rotational_offset_deg,
                 )
             )
     return instances

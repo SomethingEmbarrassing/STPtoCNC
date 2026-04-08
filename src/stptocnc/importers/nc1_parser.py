@@ -35,6 +35,19 @@ def _find_first_float(text: str, patterns: list[str]) -> float | None:
     return None
 
 
+def _find_first_bool(text: str, patterns: list[str]) -> bool | None:
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if not match:
+            continue
+        token = match.group(1).strip().upper()
+        if token in {"Y", "YES", "TRUE", "1"}:
+            return True
+        if token in {"N", "NO", "FALSE", "0"}:
+            return False
+    return None
+
+
 def _fraction_to_float(chunk: str) -> float:
     if "/" in chunk:
         a, b = chunk.split("/", 1)
@@ -181,6 +194,10 @@ def _parse_tekla_style_fallback(text: str) -> dict[str, float | str | int | Prof
     if join_dia is None and od_in is not None:
         join_dia = float(od_in)
 
+    end1_flat = bool(re.search(r"\bEND[-\s]?1\s+FLAT\s*[:=]\s*Y\b|\bE1\s+FLAT\s*[:=]\s*Y\b", text, flags=re.IGNORECASE))
+    end2_flat = bool(re.search(r"\bEND[-\s]?2\s+FLAT\s*[:=]\s*Y\b|\bE2\s+FLAT\s*[:=]\s*Y\b", text, flags=re.IGNORECASE))
+    rot_offset = _find_first_float(text, [rf"\bROT(?:ATIONAL)?\s*OFFSET\s*[:=]\s*{_FLOAT}", rf"\bRO\s*[:=]\s*{_FLOAT}"]) or 0.0
+
     return {
         "part_mark": part_mark,
         "profile_designation": profile_line,
@@ -195,6 +212,9 @@ def _parse_tekla_style_fallback(text: str) -> dict[str, float | str | int | Prof
         "end2_angle": end2_angle,
         "end1_join": join_dia,
         "end2_join": join_dia,
+        "end1_flat": end1_flat,
+        "end2_flat": end2_flat,
+        "rotational_offset_deg": rot_offset,
     }
 
 
@@ -212,6 +232,9 @@ def parse_nc1_text(text: str, source_path: str | None = None) -> Nc1Part:
     end1_join = _find_first_float(text, [rf"\b(?:END\s*1|E1)\s*(?:JOIN\s*)?DIA(?:METER)?\s*[:=]\s*{_FLOAT}", rf"\bJ1\s*[:=]\s*{_FLOAT}"])
     end2_angle = _find_first_float(text, [rf"\b(?:END\s*2|E2)\s*ANGLE\s*[:=]\s*{_FLOAT}", rf"\bA2\s*[:=]\s*{_FLOAT}"])
     end2_join = _find_first_float(text, [rf"\b(?:END\s*2|E2)\s*(?:JOIN\s*)?DIA(?:METER)?\s*[:=]\s*{_FLOAT}", rf"\bJ2\s*[:=]\s*{_FLOAT}"])
+    end1_flat = _find_first_bool(text, [r"\b(?:END\s*1|E1)\s*FLAT\s*[:=]\s*([A-Za-z0-9]+)"])
+    end2_flat = _find_first_bool(text, [r"\b(?:END\s*2|E2)\s*FLAT\s*[:=]\s*([A-Za-z0-9]+)"])
+    rotational_offset_deg = _find_first_float(text, [rf"\bROT(?:ATIONAL)?\s*OFFSET\s*[:=]\s*{_FLOAT}", rf"\bRO\s*[:=]\s*{_FLOAT}"])
 
     od = od if od is not None else fallback["od"]
     wall = wall if wall is not None else fallback["wall"]
@@ -220,6 +243,15 @@ def parse_nc1_text(text: str, source_path: str | None = None) -> Nc1Part:
     end2_angle = end2_angle if end2_angle is not None else fallback["end2_angle"]
     end1_join = end1_join if end1_join is not None else fallback["end1_join"]
     end2_join = end2_join if end2_join is not None else fallback["end2_join"]
+    end1_flat = end1_flat if end1_flat is not None else bool(fallback.get("end1_flat"))
+    end2_flat = end2_flat if end2_flat is not None else bool(fallback.get("end2_flat"))
+    rotational_offset_deg = rotational_offset_deg if rotational_offset_deg is not None else float(fallback.get("rotational_offset_deg") or 0.0)
+
+    # PieceMaker note: checked flat cut deactivates joining diameter and sets it to 200.0.
+    if end1_flat:
+        end1_join = 200.0
+    if end2_flat:
+        end2_join = 200.0
 
     missing: list[str] = []
     for name, value in [
@@ -243,14 +275,15 @@ def parse_nc1_text(text: str, source_path: str | None = None) -> Nc1Part:
         outer_diameter_in=float(od),
         wall_thickness_in=float(wall),
         length_in=float(length),
-        end1=TubeEndSpec(angle_deg=float(end1_angle), join_diameter_in=float(end1_join)),
-        end2=TubeEndSpec(angle_deg=float(end2_angle), join_diameter_in=float(end2_join)),
+        end1=TubeEndSpec(angle_deg=float(end1_angle), join_diameter_in=float(end1_join), flat_cut=bool(end1_flat)),
+        end2=TubeEndSpec(angle_deg=float(end2_angle), join_diameter_in=float(end2_join), flat_cut=bool(end2_flat)),
         quantity=int(fallback["quantity"] or 1),
         quantity_source=str(fallback["quantity_source"]),
         profile_designation=(str(fallback["profile_designation"]) if fallback["profile_designation"] else None),
         material=(str(fallback["material"]) if fallback.get("material") else None),
         profile_family=fallback["profile_family"] if isinstance(fallback["profile_family"], ProfileFamily) else ProfileFamily.UNKNOWN,
         source_path=source_path,
+        rotational_offset_deg=float(rotational_offset_deg),
     )
 
 
