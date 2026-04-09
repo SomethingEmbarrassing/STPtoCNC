@@ -1,0 +1,1 @@
+"""EMI post/writer components."""
