@@ -160,6 +160,7 @@ stptocnc inspect-cnc docs/pp1016-QC.cnc
   - Angle: `240.0 in` (20')
 - NC1 quantity is used when present; otherwise default quantity is `1`.
 - Nest visualization target is **linear** (stock bar / cut strip), not 3D solids.
+- Nesting reuses compatible open-stick remnants/drops using a deterministic best-fit reuse heuristic.
 - Adjacency trim inference (current helper):
   - First part on a fresh stick gets **no leading trim** (fresh raw stock is flat).
   - Between adjacent parts, trim is added **only when previous end is not flat-compatible for next start**.
@@ -192,6 +193,7 @@ Current assumptions:
 - one row per placed part instance (no quantity collapsing)
 - trim-before-piece comes from adjacency inference
 - start offset defaults to 0.0 until richer start-feature offsets are available
+- manual reassignment framework is available in backend (`move_instance_between_nests`) for future drag/drop UI wiring
 
 > This project targets EMI-specific `.CNC` output and does not target generic G-code.
 

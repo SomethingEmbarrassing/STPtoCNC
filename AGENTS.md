@@ -43,6 +43,7 @@ python packaging/tools/build_installer.py --iscc "C:\\Program Files (x86)\\Inno 
 ## Nesting direction (future UI assumption)
 - UI intent is linear stock assignment on a stock bar, not a full 3D viewer.
 - Domain should expose stock length, used length, remaining length, and placements for this.
+- Automatic nesting should reuse compatible remnants on previously opened sticks before opening new stock.
 - Adjacency trim rule:
   - first part on fresh stock gets no trim
   - trim (0.25 in) only when previous end is not compatible with next start
@@ -67,3 +68,4 @@ python packaging/tools/build_installer.py --iscc "C:\\Program Files (x86)\\Inno 
   - Angle -> L form
   - Pipe -> `PIPE <size> SCH <schedule>`
 - Preserve PieceMaker table semantics where known (e.g., flat-cut flag behavior and rotational offset parsing).
+- Keep backend support for manual piece reassignment between compatible nests for future drag/drop UI.

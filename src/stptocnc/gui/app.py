@@ -10,7 +10,7 @@ from pathlib import Path
 from stptocnc.config import NestingDefaults, ProfileFamily
 from stptocnc.importers import parse_nc1_file
 from stptocnc.models import expand_part_instances
-from stptocnc.nesting import pack_instances_first_fit
+from stptocnc.nesting import move_instance_between_nests, pack_instances_first_fit
 from stptocnc.workflows import finalize_nest_run
 
 
@@ -222,6 +222,14 @@ class OperatorApp(tk.Tk):
             )
         except Exception as exc:  # noqa: BLE001
             messagebox.showerror("Finalize error", str(exc))
+
+    def move_piece_between_nests(self, instance_id: str, target_nest_id: str) -> None:
+        """Backend hook for future drag/drop reassignment UI.
+
+        TODO: wire this into list/canvas interactions for point-and-click reassignment.
+        """
+        self.preview_nests = move_instance_between_nests(self.preview_nests, instance_id, target_nest_id)
+        self._render_preview(self.preview_nests)
 
 
 def launch_gui() -> None:

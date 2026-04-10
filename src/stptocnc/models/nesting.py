@@ -76,6 +76,8 @@ class NestPlacement:
     end1_flat_cut: bool = False
     end2_flat_cut: bool = False
     rotational_offset_deg: float = 0.0
+    start_condition: EndCondition = EndCondition.FLAT
+    end_condition: EndCondition = EndCondition.UNKNOWN
 
     @property
     def end_in(self) -> float:
