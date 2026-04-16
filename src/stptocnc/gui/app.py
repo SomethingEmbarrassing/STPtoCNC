@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections import OrderedDict
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
@@ -12,6 +13,7 @@ from stptocnc.importers import parse_nc1_file
 from stptocnc.models import expand_part_instances
 from stptocnc.nesting import move_instance_between_nests, pack_instances_first_fit
 from stptocnc.workflows import finalize_nest_run
+from stptocnc.workflows.operator_run import parse_quantity_overrides
 
 
 @dataclass(slots=True)
@@ -20,22 +22,6 @@ class PreviewSegment:
     start_in: float
     length_in: float
     label: str
-
-
-def _parse_quantity_override_text(raw: str) -> dict[str, int]:
-    overrides: dict[str, int] = {}
-    if not raw.strip():
-        return overrides
-    for chunk in raw.split(","):
-        token = chunk.strip()
-        if not token:
-            continue
-        if "=" not in token:
-            raise ValueError(f"Invalid override token '{token}'. Use PART=QTY.")
-        part_mark, qty_text = token.split("=", 1)
-        qty = max(1, int(qty_text.strip()))
-        overrides[part_mark.strip()] = qty
-    return overrides
 
 
 def _build_preview_segments(nest: object) -> list[PreviewSegment]:
@@ -87,6 +73,8 @@ class OperatorApp(tk.Tk):
         self.angle_len = tk.StringVar(value="240")
         self.qty_overrides = tk.StringVar(value="")
         self.output_dir = tk.StringVar(value=str(Path.cwd() / "out" / "operator-run"))
+        self._qty_vars: dict[str, tk.StringVar] = {}
+        self._loaded_part_qty: "OrderedDict[str, int]" = OrderedDict()
 
         self._build_layout()
 
@@ -116,6 +104,9 @@ class OperatorApp(tk.Tk):
         ttk.Entry(settings, textvariable=self.angle_len).pack(fill=tk.X)
         ttk.Label(settings, text="Qty overrides (PART=QTY,...)").pack(anchor="w")
         ttk.Entry(settings, textvariable=self.qty_overrides).pack(fill=tk.X)
+        ttk.Label(settings, text="Per-part qty (editable)").pack(anchor="w", pady=(6, 0))
+        self.qty_grid = ttk.Frame(settings)
+        self.qty_grid.pack(fill=tk.X)
         ttk.Label(settings, text="Output directory").pack(anchor="w")
         ttk.Entry(settings, textvariable=self.output_dir).pack(fill=tk.X)
         ttk.Button(settings, text="Browse Output Dir", command=self._choose_output_dir).pack(fill=tk.X, pady=2)
@@ -135,16 +126,19 @@ class OperatorApp(tk.Tk):
             if path not in self.file_paths:
                 self.file_paths.append(path)
                 self.file_list.insert(tk.END, str(path))
+        self._refresh_qty_grid()
 
     def _remove_file(self) -> None:
         selected = list(self.file_list.curselection())
         for idx in reversed(selected):
             self.file_list.delete(idx)
             del self.file_paths[idx]
+        self._refresh_qty_grid()
 
     def _clear_files(self) -> None:
         self.file_list.delete(0, tk.END)
         self.file_paths.clear()
+        self._refresh_qty_grid()
 
     def _choose_output_dir(self) -> None:
         directory = filedialog.askdirectory()
@@ -165,11 +159,41 @@ class OperatorApp(tk.Tk):
         if not self.file_paths:
             raise ValueError("Please add at least one NC1 file.")
         defaults = self._build_defaults()
-        qty_overrides = _parse_quantity_override_text(self.qty_overrides.get())
+        qty_overrides = self._collect_qty_overrides()
         parts = [parse_nc1_file(path) for path in self.file_paths]
         instances = expand_part_instances(parts, quantity_overrides=qty_overrides)
         nests = pack_instances_first_fit(instances, defaults=defaults).nests
         return nests, defaults, qty_overrides
+
+    def _refresh_qty_grid(self) -> None:
+        for child in self.qty_grid.winfo_children():
+            child.destroy()
+        self._qty_vars.clear()
+        self._loaded_part_qty.clear()
+        if not self.file_paths:
+            return
+
+        for path in self.file_paths:
+            part = parse_nc1_file(path)
+            self._loaded_part_qty[part.part_mark] = part.quantity
+
+        ttk.Label(self.qty_grid, text="Part").grid(row=0, column=0, sticky="w", padx=(0, 4))
+        ttk.Label(self.qty_grid, text="Qty").grid(row=0, column=1, sticky="w")
+        for row, (mark, qty) in enumerate(self._loaded_part_qty.items(), start=1):
+            ttk.Label(self.qty_grid, text=mark).grid(row=row, column=0, sticky="w", padx=(0, 4))
+            var = tk.StringVar(value=str(qty))
+            self._qty_vars[mark] = var
+            ttk.Entry(self.qty_grid, textvariable=var, width=8).grid(row=row, column=1, sticky="w")
+
+    def _collect_qty_overrides(self) -> dict[str, int]:
+        entry_overrides = parse_quantity_overrides([token for token in self.qty_overrides.get().split(",") if token.strip()])
+        grid_overrides: dict[str, int] = {}
+        for mark, var in self._qty_vars.items():
+            qty = int(var.get().strip())
+            if qty < 1:
+                raise ValueError(f"Quantity for part '{mark}' must be >= 1.")
+            grid_overrides[mark] = qty
+        return {**grid_overrides, **entry_overrides}
 
     def _preview(self) -> None:
         try:

@@ -15,6 +15,26 @@ from stptocnc.nesting import pack_instances_first_fit
 from stptocnc.workflows.finalize import finalize_nest_run
 
 
+def parse_quantity_overrides(tokens: list[str] | None) -> dict[str, int]:
+    """Parse PART=QTY tokens into a validated quantity override mapping."""
+    overrides: dict[str, int] = {}
+    for raw in tokens or []:
+        token = raw.strip()
+        if not token:
+            continue
+        if "=" not in token:
+            raise ValueError(f"Invalid quantity override '{token}'. Use PART=QTY.")
+        part_mark, qty_text = token.split("=", 1)
+        mark = part_mark.strip()
+        if not mark:
+            raise ValueError("Invalid quantity override with empty part mark.")
+        qty = int(qty_text.strip())
+        if qty < 1:
+            raise ValueError(f"Quantity override for '{mark}' must be >= 1.")
+        overrides[mark] = qty
+    return overrides
+
+
 def discover_nc1_files(path: str | Path, recursive: bool = True) -> list[Path]:
     """Resolve NC1 inputs from either a file path or directory path."""
     root = Path(path)

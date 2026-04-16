@@ -125,6 +125,12 @@ Finalize run (nested artifacts + operator cut list):
 stptocnc finalize-nest docs/pp1007.nc1 docs/pp1016.nc1 --cutlist out/cutlist.xlsx --cnc-dir out/cnc
 ```
 
+Finalize run with explicit per-piece-mark quantity overrides:
+
+```bash
+stptocnc finalize-nest docs/pp1007.nc1 docs/pp1016.nc1 --cutlist out/cutlist.xlsx --cnc-dir out/cnc --qty pp1007=2 --qty pp1016=4
+```
+
 Finalize run using machine-profile overrides (recommended when mapping commands from PieceMaker documentation):
 
 ```bash
@@ -135,6 +141,12 @@ Operator batch interface (loads NC1 files, creates suggested linear nests, and w
 
 ```bash
 stptocnc operator-run docs --output-dir out/operator-run
+```
+
+Operator batch interface with per-piece-mark quantity overrides:
+
+```bash
+stptocnc operator-run docs --output-dir out/operator-run --qty pp1016=3 --qty as1007=1
 ```
 
 Outputs are written to `out/operator-run/`:
