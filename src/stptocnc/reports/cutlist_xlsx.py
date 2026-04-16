@@ -32,18 +32,25 @@ def normalize_material_shape(profile_designation: str | None) -> str:
     if not profile_designation:
         return "UNKNOWN"
 
-    raw = profile_designation.strip().upper()
+    raw = " ".join(profile_designation.strip().upper().split())
 
     if raw.startswith("HSS"):
-        return raw
+        return "HSS" + raw[3:].replace(" ", "")
 
     if re.match(r"^L\d", raw):
         return raw
 
-    pipe_match = re.match(r"^PIPE\s*([0-9]+(?:-[0-9]+/[0-9]+)?)\s*SCH\s*([0-9A-Z]+)", raw)
-    compact_match = re.match(r"^PIPE([0-9]+(?:-[0-9]+/[0-9]+)?)SCH([0-9A-Z]+)", raw)
+    angle_match = re.match(r"^ANGLE\s*([0-9].+)$", raw)
+    if angle_match:
+        return f"L{angle_match.group(1).replace(' ', '')}"
+
+    size_pat = r"([0-9]+(?:\.[0-9]+)?(?:-[0-9]+/[0-9]+)?)"
+    pipe_match = re.match(rf"^PIPE\s*{size_pat}\s*SCH\s*([0-9A-Z]+)$", raw)
+    compact_match = re.match(rf"^PIPE{size_pat}SCH([0-9A-Z]+)$", raw)
+
     if pipe_match:
         return f"PIPE {pipe_match.group(1)} SCH {pipe_match.group(2)}"
+
     if compact_match:
         return f"PIPE {compact_match.group(1)} SCH {compact_match.group(2)}"
 
@@ -56,6 +63,7 @@ def format_inches_fraction(value_in: float) -> str:
     whole = int(rounded)
     frac = rounded - whole
     frac_part = Fraction(frac).limit_denominator(16)
+
     if frac_part.numerator == 0:
         return f'{whole}"'
     if whole == 0:
@@ -63,7 +71,11 @@ def format_inches_fraction(value_in: float) -> str:
     return f'{whole} {frac_part.numerator}/{frac_part.denominator}"'
 
 
-def write_cutlist_workbook(nests: list[LinearNest], output_path: str | Path, report_dt: datetime | None = None) -> Path:
+def write_cutlist_workbook(
+    nests: list[LinearNest],
+    output_path: str | Path,
+    report_dt: datetime | None = None,
+) -> Path:
     """Write a single-sheet operator cut list workbook grouped by nest."""
     dt = report_dt or datetime.now()
     wb = Workbook()
@@ -94,9 +106,11 @@ def write_cutlist_workbook(nests: list[LinearNest], output_path: str | Path, rep
     for nest in nests:
         nest_filename = f"{nest.nest_id}.cnc"
         ws.append([f"Nest: {nest_filename}"])
+
         for order, placement in enumerate(nest.placements, start=1):
             drop = max(0.0, nest.stock_length_in - placement.end_in)
             notes = placement.transition_reason
+
             ws.append(
                 [
                     nest_filename,
@@ -111,6 +125,7 @@ def write_cutlist_workbook(nests: list[LinearNest], output_path: str | Path, rep
                     placement.source_file,
                 ]
             )
+
         ws.append([])
 
     out = Path(output_path)

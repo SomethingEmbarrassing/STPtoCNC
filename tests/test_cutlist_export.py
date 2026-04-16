@@ -85,8 +85,11 @@ def test_cutlist_workbook_created_and_layout(tmp_path: Path) -> None:
 
 def test_material_normalization_rules() -> None:
     assert normalize_material_shape("HSS8X4X1/4") == "HSS8X4X1/4"
+    assert normalize_material_shape("HSS 8 X 4 X 1/4") == "HSS8X4X1/4"
     assert normalize_material_shape("L2X2X1/4") == "L2X2X1/4"
+    assert normalize_material_shape("ANGLE 3X3X1/4") == "L3X3X1/4"
     assert normalize_material_shape("PIPE1-1/2SCH40") == "PIPE 1-1/2 SCH 40"
+    assert normalize_material_shape("pipe 1.5 sch 80") == "PIPE 1.5 SCH 80"
 
 
 def test_fractional_inch_formatting_and_stock_summary_shape(tmp_path: Path) -> None:
