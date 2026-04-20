@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 from stptocnc.config import EmiMachineProfile, NestingDefaults
@@ -19,6 +20,12 @@ def _emit_nested_cnc(nest: LinearNest, output_dir: Path, machine_profile: EmiMac
     path = output_dir / f"{nest.nest_id}.cnc"
     path.write_text(emit_nested_nest_to_emi(nest, profile=machine_profile), encoding="utf-8")
     return path
+
+
+def _timestamped_cutlist_path(path: str | Path) -> Path:
+    target = Path(path)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return target.with_name(f"{target.stem}_{stamp}{target.suffix}")
 
 
 def finalize_nest_run(
@@ -42,7 +49,7 @@ def finalize_nest_run(
         for nest in nesting_result.nests:
             cnc_paths.append(str(_emit_nested_cnc(nest, out_dir, machine_profile=machine_profile)))
 
-    cutlist_path = write_cutlist_workbook(nesting_result.nests, cutlist_output)
+    cutlist_path = write_cutlist_workbook(nesting_result.nests, _timestamped_cutlist_path(cutlist_output))
 
     return {
         "status": "ok",

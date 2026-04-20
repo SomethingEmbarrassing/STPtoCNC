@@ -116,6 +116,17 @@ class OperatorApp(tk.Tk):
 
         self.preview_text = tk.Text(right, width=70, height=10)
         self.preview_text.pack(fill=tk.X, padx=8, pady=6)
+
+        move_panel = ttk.LabelFrame(right, text="Manual Reassignment", padding=6)
+        move_panel.pack(fill=tk.X, padx=8, pady=4)
+        self.piece_list = tk.Listbox(move_panel, width=38, height=6, exportselection=False)
+        self.piece_list.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+        self.target_nest_list = tk.Listbox(move_panel, width=28, height=6, exportselection=False)
+        self.target_nest_list.grid(row=0, column=1, sticky="nsew")
+        ttk.Button(move_panel, text="Move Selected Piece", command=self._move_selected_piece).grid(
+            row=1, column=0, columnspan=2, sticky="ew", pady=(6, 0)
+        )
+
         self.canvas = tk.Canvas(right, background="white")
         self.canvas.pack(fill=tk.BOTH, expand=True, padx=8, pady=6)
 
@@ -206,14 +217,19 @@ class OperatorApp(tk.Tk):
 
     def _render_preview(self, nests: list[object]) -> None:
         self.preview_text.delete("1.0", tk.END)
+        self.piece_list.delete(0, tk.END)
+        self.target_nest_list.delete(0, tk.END)
         self.canvas.delete("all")
         y = 20
         scale = 3.0
         for nest in nests:
+            self.target_nest_list.insert(tk.END, nest.nest_id)
             self.preview_text.insert(
                 tk.END,
                 f"{nest.nest_id}: stock={nest.stock_length_in:.2f} used={nest.used_length_in:.2f} drop={nest.remaining_length_in:.2f}\n",
             )
+            for placement in nest.placements:
+                self.piece_list.insert(tk.END, f"{placement.instance_id} ({placement.part_mark}) in {nest.nest_id}")
             x0 = 20
             width = max(1, int(nest.stock_length_in * scale))
             self.canvas.create_rectangle(x0, y, x0 + width, y + 28, outline="#333", fill="#f0f0f0")
@@ -226,6 +242,23 @@ class OperatorApp(tk.Tk):
                     self.canvas.create_text((sx + ex) / 2, y + 14, text=seg.label, fill="white", font=("Segoe UI", 8))
             self.canvas.create_text(x0 + width + 80, y + 14, text=f"Drop {nest.remaining_length_in:.2f} in", anchor="w")
             y += 44
+
+    def _move_selected_piece(self) -> None:
+        if not self.preview_nests:
+            messagebox.showerror("Move error", "Preview nests before moving pieces.")
+            return
+        piece_sel = self.piece_list.curselection()
+        nest_sel = self.target_nest_list.curselection()
+        if not piece_sel or not nest_sel:
+            messagebox.showerror("Move error", "Select a piece and a target nest.")
+            return
+        piece_text = self.piece_list.get(piece_sel[0])
+        instance_id = piece_text.split(" ", 1)[0]
+        target_nest_id = self.target_nest_list.get(nest_sel[0])
+        try:
+            self.move_piece_between_nests(instance_id, target_nest_id)
+        except Exception as exc:  # noqa: BLE001
+            messagebox.showerror("Move error", str(exc))
 
     def _finalize(self) -> None:
         try:

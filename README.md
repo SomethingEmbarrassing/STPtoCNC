@@ -151,7 +151,7 @@ stptocnc operator-run docs --output-dir out/operator-run --qty pp1016=3 --qty as
 
 Outputs are written to `out/operator-run/`:
 - `operator_nest_view.html` (operator-facing interface)
-- `cutlist.xlsx` (CutList worksheet for shop use)
+- `cutlist_YYYYMMDD_HHMMSS.xlsx` (CutList worksheet for shop use)
 - `nests_snapshot.json` (detailed ordered placement snapshot)
 - `run_summary.json` (run metadata)
 - `cnc/` (nested CNC artifacts)
@@ -161,6 +161,7 @@ Inspection commands (structured JSON):
 ```bash
 stptocnc inspect-nc1 docs/pp1016.nc1
 stptocnc inspect-cnc docs/pp1016-QC.cnc
+stptocnc check-conformance out/cnc/nest-1.cnc docs/pp1016-QC.cnc
 ```
 
 ## NC1-driven nesting assumptions (current)

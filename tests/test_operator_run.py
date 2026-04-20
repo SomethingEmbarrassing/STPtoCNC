@@ -13,7 +13,8 @@ def test_operator_run_generates_interface_outputs(tmp_path: Path) -> None:
 
     assert result["status"] == "ok"
     assert result["files_loaded"] >= 1
-    assert (out_dir / "cutlist.xlsx").exists()
+    cutlists = list(out_dir.glob("cutlist_*.xlsx"))
+    assert len(cutlists) == 1
     assert (out_dir / "operator_nest_view.html").exists()
     assert (out_dir / "run_summary.json").exists()
     assert (out_dir / "nests_snapshot.json").exists()

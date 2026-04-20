@@ -182,15 +182,16 @@ def run_operator_test_interface(
     nc1_files = discover_nc1_files(root, recursive=recursive)
     file_strings = [str(path) for path in nc1_files]
 
-    cutlist_path = out_dir / "cutlist.xlsx"
+    cutlist_output = out_dir / "cutlist.xlsx"
     cnc_dir = out_dir / "cnc" if emit_cnc else None
     finalize_result = finalize_nest_run(
         file_strings,
-        cutlist_path,
+        cutlist_output,
         cnc_output_dir=cnc_dir,
         defaults=defaults,
         quantity_overrides=quantity_overrides,
     )
+    cutlist_path = Path(str(finalize_result["cutlist"]))
 
     parts = [parse_nc1_file(path) for path in nc1_files]
     nests = pack_instances_first_fit(

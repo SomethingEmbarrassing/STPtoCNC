@@ -69,6 +69,24 @@ def format_inches_fraction(value_in: float) -> str:
     return f'{whole} {frac_part.numerator}/{frac_part.denominator}"'
 
 
+def format_feet_inches_fraction(value_in: float) -> str:
+    """Format a length as feet + inches rounded to nearest 1/16."""
+    rounded = round(value_in * 16.0) / 16.0
+    feet = int(rounded // 12.0)
+    inches_total = rounded - (feet * 12.0)
+    whole_inches = int(inches_total)
+    frac = inches_total - whole_inches
+    frac_part = Fraction(frac).limit_denominator(16)
+
+    if frac_part.numerator == 0:
+        inch_display = f'{whole_inches}"'
+    elif whole_inches == 0:
+        inch_display = f'{frac_part.numerator}/{frac_part.denominator}"'
+    else:
+        inch_display = f'{whole_inches} {frac_part.numerator}/{frac_part.denominator}"'
+    return f"{feet}'-{inch_display}"
+
+
 def write_cutlist_workbook(nests: list[LinearNest], output_path: str | Path, report_dt: datetime | None = None) -> Path:
     """Write a single-sheet operator cut list workbook grouped by nest."""
     dt = report_dt or datetime.now()
@@ -92,7 +110,7 @@ def write_cutlist_workbook(nests: list[LinearNest], output_path: str | Path, rep
     ws.append(["Time", dt.strftime("%H:%M:%S")])
     ws.append(["Total Nests", nest_count])
     ws.append(["Total Pieces", piece_count])
-    ws.append(["Raw Stock Summary", "; ".join(f"{k}: {v}" for k, v in sorted(stock_counter.items()))])
+    ws.append(["Raw Stock Summary", "; ".join(f"{k} qty {v}" for k, v in sorted(stock_counter.items()))])
     ws.append([])
 
     ws.append(CUTLIST_COLUMNS)
@@ -102,16 +120,16 @@ def write_cutlist_workbook(nests: list[LinearNest], output_path: str | Path, rep
         ws.append([f"Nest: {nest_filename}"])
         for order, placement in enumerate(nest.placements, start=1):
             drop = max(0.0, nest.stock_length_in - placement.end_in)
-            notes = placement.transition_reason
+            notes = placement.transition_reason.replace("_", " ")
             ws.append(
                 [
                     nest_filename,
                     order,
                     placement.part_mark,
                     normalize_material_shape(placement.profile_designation),
-                    format_inches_fraction(placement.length_in),
+                    format_feet_inches_fraction(placement.length_in),
                     format_inches_fraction(placement.start_offset_in),
-                    format_inches_fraction(drop),
+                    format_feet_inches_fraction(drop),
                     format_inches_fraction(placement.transition_trim_before_in),
                     notes,
                     placement.source_file,

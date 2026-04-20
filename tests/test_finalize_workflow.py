@@ -16,7 +16,10 @@ def test_finalize_nest_run_creates_cutlist(tmp_path: Path) -> None:
     )
 
     assert result["status"] == "ok"
-    assert cutlist.exists()
+    generated_cutlist = Path(result["cutlist"])
+    assert generated_cutlist.exists()
+    assert generated_cutlist.name.startswith("final-cutlist_")
+    assert generated_cutlist.suffix == ".xlsx"
     assert len(result["cnc_files"]) >= 1
     first_cnc = Path(result["cnc_files"][0])
     cnc_text = first_cnc.read_text(encoding="utf-8")
@@ -24,5 +27,5 @@ def test_finalize_nest_run_creates_cutlist(tmp_path: Path) -> None:
     assert "(POST EMI 2400 PROMPTS ROP V1.4)" in cnc_text
     assert "(PIECE " in cnc_text
 
-    wb = load_workbook(cutlist)
+    wb = load_workbook(generated_cutlist)
     assert wb.sheetnames == ["CutList"]

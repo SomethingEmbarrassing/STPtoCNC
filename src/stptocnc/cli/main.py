@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 from stptocnc.importers import parse_nc1_file
-from stptocnc.parsers import inspect_cnc_file, inspect_nc1_file
+from stptocnc.parsers import compare_cnc_conformance, inspect_cnc_file, inspect_nc1_file
 from stptocnc.post.emi_writer import emit_minimal_sample, emit_nc1_part_to_emi
 from stptocnc.config import EmiMachineProfile
 from stptocnc.workflows import finalize_nest_run, run_operator_test_interface
@@ -20,6 +20,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
     inspect_cnc = sub.add_parser("inspect-cnc", help="Inspect a .CNC file and print structured JSON")
     inspect_cnc.add_argument("path", type=Path, help="Path to CNC file")
+    conformance = sub.add_parser("check-conformance", help="Compare generated CNC structure against accepted shop output")
+    conformance.add_argument("generated", type=Path, help="Generated CNC path")
+    conformance.add_argument("accepted", type=Path, help="Accepted CNC path")
 
     emit_sample = sub.add_parser("emit-sample-cnc", help="Emit a minimal synthetic EMI .CNC sample")
     emit_sample.add_argument("--program-id", default="SAMPLE001", help="Program id to embed in sample")
@@ -77,6 +80,11 @@ def main() -> int:
         result = inspect_cnc_file(args.path)
         print(json.dumps(result, indent=2))
         return 0
+
+    if args.command == "check-conformance":
+        result = compare_cnc_conformance(args.generated, args.accepted)
+        print(json.dumps(result, indent=2))
+        return 0 if result["status"] == "ok" else 1
 
     if args.command == "emit-sample-cnc":
         print(emit_minimal_sample(program_id=args.program_id), end="")
