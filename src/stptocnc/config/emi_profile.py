@@ -27,9 +27,18 @@ class EmiMachineProfile:
     setup_stop_command: str = "M00"
     process_feed_ipm: float = 140.0
     rapid_feed_ipm: float = 14400.0
-    wrapped_step_degrees: float = 2.0
+    wrapped_step_degrees_round: float = 3.21429
+    wrapped_step_degrees_other: float = 5.0
     safe_z_in: float = 4.0
     pierce_z_in: float = 2.0
+    retract_z_in: float = 4.0
+    setup_stop_mode: str = "first_stick_only"  # always | first_stick_only | every_piece | never
+    pierce_step_in: float = 0.001
+    toe_step_in: float = 0.0002
+    lead_in_x_in: float = 0.0
+    lead_out_x_in: float = 0.0
+    lead_in_enabled: bool = True
+    lead_out_enabled: bool = True
 
     @classmethod
     def from_json_file(cls, path: str | Path) -> "EmiMachineProfile":
@@ -52,7 +61,16 @@ class EmiMachineProfile:
             setup_stop_command=payload.get("setup_stop_command", defaults.setup_stop_command),
             process_feed_ipm=float(payload.get("process_feed_ipm", defaults.process_feed_ipm)),
             rapid_feed_ipm=float(payload.get("rapid_feed_ipm", defaults.rapid_feed_ipm)),
-            wrapped_step_degrees=float(payload.get("wrapped_step_degrees", defaults.wrapped_step_degrees)),
+            wrapped_step_degrees_round=float(payload.get("wrapped_step_degrees_round", payload.get("wrapped_step_degrees", defaults.wrapped_step_degrees_round))),
+            wrapped_step_degrees_other=float(payload.get("wrapped_step_degrees_other", defaults.wrapped_step_degrees_other)),
             safe_z_in=float(payload.get("safe_z_in", defaults.safe_z_in)),
             pierce_z_in=float(payload.get("pierce_z_in", defaults.pierce_z_in)),
+            retract_z_in=float(payload.get("retract_z_in", defaults.retract_z_in)),
+            setup_stop_mode=str(payload.get("setup_stop_mode", defaults.setup_stop_mode)),
+            pierce_step_in=float(payload.get("pierce_step_in", defaults.pierce_step_in)),
+            toe_step_in=float(payload.get("toe_step_in", defaults.toe_step_in)),
+            lead_in_x_in=float(payload.get("lead_in_x_in", defaults.lead_in_x_in)),
+            lead_out_x_in=float(payload.get("lead_out_x_in", defaults.lead_out_x_in)),
+            lead_in_enabled=bool(payload.get("lead_in_enabled", defaults.lead_in_enabled)),
+            lead_out_enabled=bool(payload.get("lead_out_enabled", defaults.lead_out_enabled)),
         )
