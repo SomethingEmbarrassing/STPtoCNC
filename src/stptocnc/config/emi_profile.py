@@ -19,17 +19,40 @@ class EmiMachineProfile:
     piece_complete_prompt: str = "(PIECE COMPLETE)"
     nested_complete_prompt: str = "(PROMPT REMOVE NESTED STOCK)"
     footer_command: str = "M30"
+    unit_command: str = "G20"
+    work_offset_command: str = "G58"
+    tool_select_command: str = "T1"
+    tool_length_command: str = "G43 H1"
+    clamp_command: str = "M10"
+    setup_stop_command: str = "M00"
+    process_feed_ipm: float = 140.0
+    rapid_feed_ipm: float = 14400.0
+    wrapped_step_degrees: float = 2.0
+    safe_z_in: float = 4.0
+    pierce_z_in: float = 2.0
 
     @classmethod
     def from_json_file(cls, path: str | Path) -> "EmiMachineProfile":
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        defaults = cls()
         return cls(
-            post_label=payload.get("post_label", cls.post_label),
+            post_label=payload.get("post_label", defaults.post_label),
             trim_cut_command=payload.get("trim_cut_command"),
-            torch_on_command=payload.get("torch_on_command", cls.torch_on_command),
-            torch_off_command=payload.get("torch_off_command", cls.torch_off_command),
-            torch_raise_command=payload.get("torch_raise_command", cls.torch_raise_command),
-            piece_complete_prompt=payload.get("piece_complete_prompt", cls.piece_complete_prompt),
-            nested_complete_prompt=payload.get("nested_complete_prompt", cls.nested_complete_prompt),
-            footer_command=payload.get("footer_command", cls.footer_command),
+            torch_on_command=payload.get("torch_on_command", defaults.torch_on_command),
+            torch_off_command=payload.get("torch_off_command", defaults.torch_off_command),
+            torch_raise_command=payload.get("torch_raise_command", defaults.torch_raise_command),
+            piece_complete_prompt=payload.get("piece_complete_prompt", defaults.piece_complete_prompt),
+            nested_complete_prompt=payload.get("nested_complete_prompt", defaults.nested_complete_prompt),
+            footer_command=payload.get("footer_command", defaults.footer_command),
+            unit_command=payload.get("unit_command", defaults.unit_command),
+            work_offset_command=payload.get("work_offset_command", defaults.work_offset_command),
+            tool_select_command=payload.get("tool_select_command", defaults.tool_select_command),
+            tool_length_command=payload.get("tool_length_command", defaults.tool_length_command),
+            clamp_command=payload.get("clamp_command", defaults.clamp_command),
+            setup_stop_command=payload.get("setup_stop_command", defaults.setup_stop_command),
+            process_feed_ipm=float(payload.get("process_feed_ipm", defaults.process_feed_ipm)),
+            rapid_feed_ipm=float(payload.get("rapid_feed_ipm", defaults.rapid_feed_ipm)),
+            wrapped_step_degrees=float(payload.get("wrapped_step_degrees", defaults.wrapped_step_degrees)),
+            safe_z_in=float(payload.get("safe_z_in", defaults.safe_z_in)),
+            pierce_z_in=float(payload.get("pierce_z_in", defaults.pierce_z_in)),
         )

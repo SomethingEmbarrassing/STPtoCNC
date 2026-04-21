@@ -14,12 +14,26 @@ END2 JOIN DIAMETER: 1.250
 """
 
 
-def test_emit_nc1_part_to_emi_includes_two_64_step_loops() -> None:
+def test_emit_nc1_part_to_emi_includes_legacy_style_setup_and_wrapped_cut() -> None:
     part = parse_nc1_text(SAMPLE_NC1)
     output = emit_nc1_part_to_emi(part)
     lines = output.splitlines()
 
     assert "(PROGRAM pp1007)" in lines
     assert "(POST EMI 2400 PROMPTS ROP V1.4)" in lines
-    assert sum(1 for line in lines if line.startswith("A")) == 128
+    assert "G20" in lines
+    assert "G58" in lines
+    assert "T1" in lines
+    assert "G43 H1" in lines
+    assert "#29001 = 140" in lines
+    assert "G91" in lines
+    assert "G93.1" in lines
+    assert "G94" in lines
+    x_values = []
+    for line in lines:
+        if line.startswith("G01 A") and " X" in line:
+            x_chunk = line.split(" X", 1)[1].split(" ", 1)[0]
+            x_values.append(round(float(x_chunk), 4))
+    assert len(x_values) > 20
+    assert len(set(x_values)) > 5
     assert "M30" in lines

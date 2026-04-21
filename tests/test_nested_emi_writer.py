@@ -23,11 +23,19 @@ def test_emit_nested_nest_to_emi_contains_real_nest_structure() -> None:
     text = emit_nested_nest_to_emi(nest)
     assert "(PROGRAM nest-99)" in text
     assert "(POST EMI 2400 PROMPTS ROP V1.4)" in text
+    assert "G20" in text
+    assert "G58" in text
+    assert "T1" in text
+    assert "G43 H1" in text
+    assert "#29001 = 140" in text
     assert "(PIECE 1: A START=0.000 LEN=20.000)" in text
     assert "(PROMPT REMOVE NESTED STOCK)" in text
     assert "M15" in text
     assert "M16" in text
     assert "M25" in text
+    assert "G91" in text
+    assert "G93.1" in text
+    assert "G94" in text
     assert "(PLACEHOLDER NESTED CNC)" not in text
 
 
@@ -74,4 +82,32 @@ def test_emit_nested_nest_to_emi_emits_flat_flags_and_rotation_offset() -> None:
     assert "(ROTATIONAL OFFSET: 12.500)" in text
     assert "(END1 FLAT: Y)" in text
     assert "(END2 FLAT: N)" in text
-    assert "(END1: angle=45.000 join_dia=200.000)" in text
+    assert "(END GEOMETRY: angle=45.000 join_dia=200.000 od=1.910)" in text
+
+
+def test_emit_nested_nest_to_emi_has_varying_x_profile_and_reposition() -> None:
+    nest = LinearNest(nest_id="nest-102", profile_family=ProfileFamily.PIPE, stock_length_in=252.0)
+    nest.placements = [
+        NestPlacement(
+            instance_id="A#1",
+            part_mark="A",
+            offset_in=0.0,
+            length_in=40.0,
+            end1_angle_deg=30.0,
+            end1_join_diameter_in=1.0,
+            end2_angle_deg=25.0,
+            end2_join_diameter_in=1.0,
+            outer_diameter_in=1.9,
+            rotational_offset_deg=10.0,
+        )
+    ]
+    text = emit_nested_nest_to_emi(nest)
+    x_values = []
+    for line in text.splitlines():
+        if line.startswith("G01 A") and " X" in line:
+            x_chunk = line.split(" X", 1)[1].split(" ", 1)[0]
+            x_values.append(round(float(x_chunk), 4))
+    assert len(x_values) > 20
+    assert len(set(x_values)) > 5
+    assert ";End1->End2 Reposition" in text
+    assert "G01 X40.0000 F#29001" in text
