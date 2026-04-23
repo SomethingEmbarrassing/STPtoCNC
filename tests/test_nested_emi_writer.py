@@ -115,6 +115,13 @@ def test_emit_nested_nest_to_emi_has_varying_x_profile_and_reposition() -> None:
     assert "M16\n;End1->End2 Reposition" in text
     assert "(END2 FLAT: N)\nG01 X-0.0010 F#29001\nG01 X0.0002 F#29001\nM15" in text
     assert "G01 X40.0012 F#29001" in text
+    assert "G01 G93.1 F#29002" in text
+    end1_start = text.index(";End1 - Start")
+    first_wrap = next(
+        line for line in text[end1_start:].splitlines() if line.startswith("G01 A") and " X" in line
+    )
+    first_x = float(first_wrap.split(" X", 1)[1])
+    assert abs(first_x) < 0.05
 
 
 def test_emit_nested_nest_setup_stop_mode_every_piece() -> None:

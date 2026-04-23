@@ -27,11 +27,11 @@ def test_emit_nc1_part_to_emi_includes_legacy_style_setup_and_wrapped_cut() -> N
     assert "G43 H1" in lines
     assert "#29001 = 140" in lines
     assert "G91" in lines
-    assert "G93.1" in lines
+    assert any("G93.1" in line for line in lines)
     assert "G94" in lines
     assert "G01 X-0.0010 F#29001" in lines
     assert "G01 X0.0002 F#29001" in lines
-    assert "G01 F#29002" in lines
+    assert "G01 G93.1 F#29002" in lines
     x_values = []
     for line in lines:
         if line.startswith("G01 A") and " X" in line:

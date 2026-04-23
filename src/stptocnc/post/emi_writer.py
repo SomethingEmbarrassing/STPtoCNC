@@ -113,12 +113,12 @@ def _emit_wrapped_cut_section(
         f"G00 Z{cfg.safe_z_in:.4f}",
         f"G00 Z{cfg.pierce_z_in:.4f}",
         "G91",
-        "G93.1",
-        "G01 F#29002",
+        "G01 G93.1 F#29002",
     ]
-    prev_a, prev_x = points[0]
-    lines.append(f"G01 A{prev_a:.4f} X{prev_x:.4f}")
-    for a_deg, x in points[1:]:
+    x0 = points[0][1]
+    normalized = [(a_deg, x - x0) for a_deg, x in points]
+    prev_a, prev_x = normalized[0]
+    for a_deg, x in normalized[1:]:
         da = a_deg - prev_a
         dx = x - prev_x
         lines.append(f"G01 A{da:.4f} X{dx:.4f}")
