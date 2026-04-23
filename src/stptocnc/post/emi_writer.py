@@ -153,6 +153,20 @@ def emit_lead_out(cfg: EmiMachineProfile) -> list[str]:
     return lines
 
 
+def emit_end_reposition(placement: NestPlacement, cfg: EmiMachineProfile) -> list[str]:
+    """Reposition from end1 to end2 with future compensation hooks."""
+    compensation = cfg.toe_step_in + cfg.pierce_step_in + cfg.lead_out_x_in - cfg.lead_in_x_in
+    traverse = placement.length_in + compensation
+    return [
+        ";End1->End2 Reposition",
+        "G91",
+        f"G01 X{traverse:.4f} F#29001",
+        "G90",
+        f"G00 A{placement.rotational_offset_deg:.4f}",
+        f"G00 Z{cfg.pierce_z_in:.4f}",
+    ]
+
+
 def _emit_setup_stop(mode: str, phase: str, cfg: EmiMachineProfile) -> list[str]:
     if mode == "never":
         return []
@@ -195,12 +209,7 @@ def _emit_piece_end_blocks(placement: NestPlacement, cfg: EmiMachineProfile) -> 
         ),
         *emit_lead_out(cfg),
         cfg.torch_off_command,
-        ";End1->End2 Reposition",
-        "G91",
-        f"G01 X{placement.length_in:.4f} F#29001",
-        "G90",
-        f"G00 A{placement.rotational_offset_deg:.4f}",
-        f"G00 Z{cfg.pierce_z_in:.4f}",
+        *emit_end_reposition(placement, cfg),
         f"(END2 FLAT: {'Y' if placement.end2_flat_cut else 'N'})",
         *emit_pierce_step(cfg),
         *emit_toe_step(cfg),

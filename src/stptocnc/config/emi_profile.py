@@ -28,11 +28,11 @@ class EmiMachineProfile:
     process_feed_ipm: float = 140.0
     rapid_feed_ipm: float = 14400.0
     wrapped_step_degrees_round: float = 3.21429
-    wrapped_step_degrees_other: float = 5.0
+    wrapped_step_degrees_other: float = 3.21429
     safe_z_in: float = 4.0
     pierce_z_in: float = 2.0
     retract_z_in: float = 4.0
-    setup_stop_mode: str = "first_stick_only"  # always | first_stick_only | every_piece | never
+    setup_stop_mode: str = "always"  # always | first_stick_only | every_piece | never
     pierce_step_in: float = 0.001
     toe_step_in: float = 0.0002
     lead_in_x_in: float = 0.0

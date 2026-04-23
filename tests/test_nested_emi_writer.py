@@ -114,7 +114,7 @@ def test_emit_nested_nest_to_emi_has_varying_x_profile_and_reposition() -> None:
     assert ";End1->End2 Reposition" in text
     assert "M16\n;End1->End2 Reposition" in text
     assert "(END2 FLAT: N)\nG01 X-0.0010 F#29001\nG01 X0.0002 F#29001\nM15" in text
-    assert "G01 X40.0000 F#29001" in text
+    assert "G01 X40.0012 F#29001" in text
 
 
 def test_emit_nested_nest_setup_stop_mode_every_piece() -> None:
@@ -125,3 +125,12 @@ def test_emit_nested_nest_setup_stop_mode_every_piece() -> None:
     ]
     text = emit_nested_nest_to_emi(nest, profile=EmiMachineProfile(setup_stop_mode="every_piece"))
     assert text.count("M00") == 2
+
+
+def test_emit_nested_nest_default_setup_stop_mode_is_enabled() -> None:
+    nest = LinearNest(nest_id="nest-104", profile_family=ProfileFamily.PIPE, stock_length_in=252.0)
+    nest.placements = [
+        NestPlacement(instance_id="A#1", part_mark="A", offset_in=0.0, length_in=20.0, end1_angle_deg=10.0, end1_join_diameter_in=1.2, end2_angle_deg=10.0, end2_join_diameter_in=1.2),
+    ]
+    text = emit_nested_nest_to_emi(nest)
+    assert "M00" in text
