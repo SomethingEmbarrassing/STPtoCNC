@@ -165,6 +165,20 @@ stptocnc check-conformance out/cnc/nest-1.cnc docs/pp1016-QC.cnc
 stptocnc calibrate-reference docs/as1007.nc1 "docs/as1007 25-41-QC.cnc" --output-dir out/calibration
 ```
 
+Reference-calibration sample commands that match files currently tracked in `docs/`:
+
+```bash
+stptocnc calibrate-reference docs/as1019.nc1 "docs/as1019 25-41-QC.cnc" --output-dir out/as1019-calibration
+stptocnc calibrate-reference docs/h1001.nc1 docs/h1001-QC.cnc --output-dir out/h1001-calibration
+stptocnc calibrate-reference docs/pp1016.nc1 docs/pp1016-QC.cnc --output-dir out/pp1016-calibration
+```
+
+If you receive `No such file or directory`, verify exact filenames in `docs/` first:
+
+```bash
+find docs -maxdepth 1 -type f
+```
+
 ## NC1-driven nesting assumptions (current)
 
 - Multiple NC1 inputs should eventually produce **one nested `.CNC` per stock stick**.
