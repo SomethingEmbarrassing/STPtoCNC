@@ -10,7 +10,7 @@ from stptocnc.importers import parse_nc1_file
 from stptocnc.parsers import compare_cnc_conformance, inspect_cnc_file, inspect_nc1_file
 from stptocnc.post.emi_writer import emit_minimal_sample, emit_nc1_part_to_emi
 from stptocnc.config import EmiMachineProfile
-from stptocnc.workflows import finalize_nest_run, run_operator_test_interface
+from stptocnc.workflows import build_calibration_report, finalize_nest_run, run_operator_test_interface
 from stptocnc.workflows.operator_run import parse_quantity_overrides
 
 
@@ -20,6 +20,13 @@ def _build_parser() -> argparse.ArgumentParser:
 
     inspect_cnc = sub.add_parser("inspect-cnc", help="Inspect a .CNC file and print structured JSON")
     inspect_cnc.add_argument("path", type=Path, help="Path to CNC file")
+    calibrate = sub.add_parser(
+        "calibrate-reference",
+        help="Generate NC1 parse + generated CNC + behavior comparison report against legacy CNC",
+    )
+    calibrate.add_argument("nc1_path", type=Path, help="Input NC1 file")
+    calibrate.add_argument("legacy_cnc_path", type=Path, help="Manual legacy CNC reference file")
+    calibrate.add_argument("--output-dir", required=True, type=Path, help="Output directory for calibration report bundle")
     conformance = sub.add_parser("check-conformance", help="Compare generated CNC structure against accepted shop output")
     conformance.add_argument("generated", type=Path, help="Generated CNC path")
     conformance.add_argument("accepted", type=Path, help="Accepted CNC path")
@@ -78,6 +85,11 @@ def main() -> int:
 
     if args.command == "inspect-cnc":
         result = inspect_cnc_file(args.path)
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "calibrate-reference":
+        result = build_calibration_report(args.nc1_path, args.legacy_cnc_path, args.output_dir)
         print(json.dumps(result, indent=2))
         return 0
 

@@ -33,3 +33,4 @@ class Nc1Part:
     profile_family: ProfileFamily = ProfileFamily.UNKNOWN
     source_path: str | None = None
     rotational_offset_deg: float = 0.0
+    ak_rows: list[list[float]] | None = None

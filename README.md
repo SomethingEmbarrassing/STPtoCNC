@@ -162,6 +162,7 @@ Inspection commands (structured JSON):
 stptocnc inspect-nc1 docs/pp1016.nc1
 stptocnc inspect-cnc docs/pp1016-QC.cnc
 stptocnc check-conformance out/cnc/nest-1.cnc docs/pp1016-QC.cnc
+stptocnc calibrate-reference docs/as1007.nc1 "docs/as1007 25-41-QC.cnc" --output-dir out/calibration
 ```
 
 ## NC1-driven nesting assumptions (current)

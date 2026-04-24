@@ -215,6 +215,7 @@ def _parse_tekla_style_fallback(text: str) -> dict[str, float | str | int | Prof
         "end1_flat": end1_flat,
         "end2_flat": end2_flat,
         "rotational_offset_deg": rot_offset,
+        "ak_rows": ak_rows,
     }
 
 
@@ -284,6 +285,7 @@ def parse_nc1_text(text: str, source_path: str | None = None) -> Nc1Part:
         profile_family=fallback["profile_family"] if isinstance(fallback["profile_family"], ProfileFamily) else ProfileFamily.UNKNOWN,
         source_path=source_path,
         rotational_offset_deg=float(rotational_offset_deg),
+        ak_rows=list(fallback.get("ak_rows") or []),
     )
 
 
