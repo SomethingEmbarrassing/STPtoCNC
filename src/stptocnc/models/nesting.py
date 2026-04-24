@@ -124,34 +124,62 @@ class NestingResult:
     nests: list[LinearNest]
 
 
-def infer_end_condition_from_nc1(part: "Nc1Part") -> EndCondition:
-    """Infer a coarse end condition from currently-available NC1 part fields.
+def _classify_end_condition(
+    *,
+    angle_deg: float,
+    join_diameter_in: float,
+    outer_diameter_in: float,
+    flat_cut: bool,
+) -> EndCondition:
+    """Classify NC1 end semantics using explicit flags first, then geometry hints.
 
-    TODO: replace heuristic with robust feature-based extraction from NC1 records.
+    Rules:
+    - explicit flat-cut flags take precedence
+    - small join diameter ratios imply cope/fishmouth-like ends
+    - near-zero angle with full/near-full join is flat
+    - non-right-angle transitions with near-full join are miter
+    - unresolved/near-90° cases remain unknown (conservative)
     """
-    angle = abs(part.end2.angle_deg)
-    if part.end2.join_diameter_in <= part.outer_diameter_in * 0.8:
-        return EndCondition.COPE
-    if angle <= 1.0:
+    angle = abs(float(angle_deg))
+
+    if flat_cut:
         return EndCondition.FLAT
-    if angle < 89.0:
+
+    if outer_diameter_in > 0:
+        join_ratio = float(join_diameter_in) / float(outer_diameter_in)
+    else:
+        join_ratio = 0.0
+
+    if join_ratio <= 0.9:
+        return EndCondition.COPE
+
+    if angle <= 1.0 and join_ratio >= 0.95:
+        return EndCondition.FLAT
+
+    if 1.0 < angle < 89.0 and join_ratio >= 0.95:
         return EndCondition.MITER
+
     return EndCondition.UNKNOWN
+
+
+def infer_end_condition_from_nc1(part: "Nc1Part") -> EndCondition:
+    """Infer end condition using parsed NC1 flags + end geometry."""
+    return _classify_end_condition(
+        angle_deg=part.end2.angle_deg,
+        join_diameter_in=part.end2.join_diameter_in,
+        outer_diameter_in=part.outer_diameter_in,
+        flat_cut=part.end2.flat_cut,
+    )
 
 
 def infer_start_condition_from_nc1(part: "Nc1Part") -> EndCondition:
-    """Infer a coarse start condition requirement from NC1 part fields.
-
-    TODO: replace heuristic with robust start-feature parsing.
-    """
-    angle = abs(part.end1.angle_deg)
-    if part.end1.join_diameter_in <= part.outer_diameter_in * 0.8:
-        return EndCondition.COPE
-    if angle <= 1.0:
-        return EndCondition.FLAT
-    if angle < 89.0:
-        return EndCondition.MITER
-    return EndCondition.UNKNOWN
+    """Infer start condition using parsed NC1 flags + end geometry."""
+    return _classify_end_condition(
+        angle_deg=part.end1.angle_deg,
+        join_diameter_in=part.end1.join_diameter_in,
+        outer_diameter_in=part.outer_diameter_in,
+        flat_cut=part.end1.flat_cut,
+    )
 
 
 def expand_part_instances(parts: list["Nc1Part"], quantity_overrides: dict[str, int] | None = None) -> list[PartInstance]:

@@ -1,4 +1,5 @@
 from stptocnc.importers.nc1_parser import parse_nc1_text
+from stptocnc.models.nesting import EndCondition, infer_end_condition_from_nc1, infer_start_condition_from_nc1
 
 
 SAMPLE_NC1 = """
@@ -53,3 +54,52 @@ ROTATIONAL OFFSET: 12.5
     assert part.end2.flat_cut is False
     assert part.end2.join_diameter_in == 1.910
     assert part.rotational_offset_deg == 12.5
+
+
+def test_infer_start_condition_prefers_explicit_flat_flag() -> None:
+    part = parse_nc1_text(
+        """
+PART MARK: p30
+OD: 2.375
+WALL: 0.154
+LENGTH: 80.0
+END1 ANGLE: 45.0
+END1 JOIN DIAMETER: 1.000
+END1 FLAT: Y
+END2 ANGLE: 30.0
+END2 JOIN DIAMETER: 2.300
+"""
+    )
+    assert infer_start_condition_from_nc1(part) == EndCondition.FLAT
+
+
+def test_infer_end_condition_detects_cope_from_join_ratio() -> None:
+    part = parse_nc1_text(
+        """
+PART MARK: p31
+OD: 2.375
+WALL: 0.154
+LENGTH: 80.0
+END1 ANGLE: 0.0
+END1 JOIN DIAMETER: 2.375
+END2 ANGLE: 25.0
+END2 JOIN DIAMETER: 1.700
+"""
+    )
+    assert infer_end_condition_from_nc1(part) == EndCondition.COPE
+
+
+def test_infer_end_condition_detects_miter_with_full_join() -> None:
+    part = parse_nc1_text(
+        """
+PART MARK: p32
+OD: 2.375
+WALL: 0.154
+LENGTH: 80.0
+END1 ANGLE: 0.0
+END1 JOIN DIAMETER: 2.375
+END2 ANGLE: 35.0
+END2 JOIN DIAMETER: 2.300
+"""
+    )
+    assert infer_end_condition_from_nc1(part) == EndCondition.MITER

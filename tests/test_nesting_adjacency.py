@@ -25,6 +25,7 @@ def test_flat_to_flat_requires_no_trim() -> None:
     nxt = _part(2, EndCondition.FLAT, EndCondition.FLAT)
     decision = evaluate_adjacency(prev, nxt, NestingDefaults())
     assert decision.trim_before_next_in == 0.0
+    assert decision.reason == "previous_end_flat_flat_compatible"
 
 
 def test_cope_to_flat_inserts_trim() -> None:
@@ -32,6 +33,7 @@ def test_cope_to_flat_inserts_trim() -> None:
     nxt = _part(2, EndCondition.FLAT, EndCondition.FLAT)
     decision = evaluate_adjacency(prev, nxt, NestingDefaults())
     assert decision.trim_before_next_in == 0.25
+    assert decision.reason == "previous_end_cope_requires_trim_for_next_flat"
 
 
 def test_multi_part_nest_consumption_only_counts_required_trims() -> None:
@@ -55,3 +57,4 @@ def test_unknown_end_condition_defaults_conservative_trim() -> None:
     nxt = _part(2, EndCondition.FLAT, EndCondition.FLAT)
     decision = evaluate_adjacency(prev, nxt, NestingDefaults())
     assert decision.trim_before_next_in == 0.25
+    assert decision.reason == "previous_end_unknown_requires_trim_for_next_flat"

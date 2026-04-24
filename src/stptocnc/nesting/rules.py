@@ -52,13 +52,21 @@ def evaluate_adjacency(previous: PartInstance | None, nxt: PartInstance, default
         return TransitionDecision(trim_before_next_in=0.0, compatible=True, reason="fresh_stock_first_part")
 
     if not nxt.requires_flat_start:
-        return TransitionDecision(trim_before_next_in=0.0, compatible=True, reason="next_part_does_not_require_flat_start")
+        return TransitionDecision(
+            trim_before_next_in=0.0,
+            compatible=True,
+            reason=f"next_start_{nxt.start_condition.value}_compatible",
+        )
 
     if previous.leaves_flat_remainder:
-        return TransitionDecision(trim_before_next_in=0.0, compatible=True, reason="previous_end_flat_compatible")
+        return TransitionDecision(
+            trim_before_next_in=0.0,
+            compatible=True,
+            reason=f"previous_end_{previous.end_condition.value}_flat_compatible",
+        )
 
     return TransitionDecision(
         trim_before_next_in=cfg.last_piece_cope_trim_in,
         compatible=False,
-        reason="previous_end_not_flat_compatible",
+        reason=f"previous_end_{previous.end_condition.value}_requires_trim_for_next_{nxt.start_condition.value}",
     )
