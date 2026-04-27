@@ -40,7 +40,7 @@ def _build_parser() -> argparse.ArgumentParser:
     inspect_nc1 = sub.add_parser("inspect-nc1", help="Inspect an NC1 file and print structured JSON")
     inspect_nc1.add_argument("path", type=Path, help="Path to NC1 file")
 
-    convert_nc1 = sub.add_parser("convert-nc1", help="Convert NC1 input into a placeholder EMI .CNC output")
+    convert_nc1 = sub.add_parser("convert-nc1", help="Convert NC1 input into EMI .CNC output")
     convert_nc1.add_argument("input", type=Path, help="Path to NC1 file")
     convert_nc1.add_argument("output", type=Path, help="Path to output CNC file")
 
@@ -64,7 +64,7 @@ def _build_parser() -> argparse.ArgumentParser:
     operator_run.add_argument("input_path", type=Path, help="Path to NC1 file or directory containing NC1 files")
     operator_run.add_argument("--output-dir", required=True, type=Path, help="Output directory for generated artifacts")
     operator_run.add_argument("--no-recursive", action="store_true", help="Only scan top-level directory for NC1 files")
-    operator_run.add_argument("--no-cnc", action="store_true", help="Disable placeholder nested CNC output files")
+    operator_run.add_argument("--no-cnc", action="store_true", help="Disable nested CNC output files")
     operator_run.add_argument(
         "--qty",
         action="append",
@@ -107,7 +107,7 @@ def main() -> int:
             json.dumps(
                 {
                     "path": str(args.path),
-                    "status": "placeholder",
+                    "status": "not_implemented",
                     "message": "STEP inspection is not implemented yet.",
                 },
                 indent=2,
