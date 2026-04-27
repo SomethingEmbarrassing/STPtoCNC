@@ -24,6 +24,12 @@ class EmiMachineProfile:
     tool_select_command: str = "T1"
     tool_length_command: str = "G43 H1"
     clamp_command: str = "M10"
+    absolute_mode_command: str = "G90"
+    incremental_mode_command: str = "G91"
+    wrapped_feed_mode_command: str = "G01 G93.1 F#29002"
+    standard_feed_mode_command: str = "G94"
+    axis_reset_command: str = "G92 X0.0"
+    initial_position_command: str = "G00 Y0.0 A0.0"
     setup_stop_command: str = "M00"
     process_feed_ipm: float = 140.0
     rapid_feed_ipm: float = 14400.0
@@ -58,6 +64,12 @@ class EmiMachineProfile:
             tool_select_command=payload.get("tool_select_command", defaults.tool_select_command),
             tool_length_command=payload.get("tool_length_command", defaults.tool_length_command),
             clamp_command=payload.get("clamp_command", defaults.clamp_command),
+            absolute_mode_command=payload.get("absolute_mode_command", defaults.absolute_mode_command),
+            incremental_mode_command=payload.get("incremental_mode_command", defaults.incremental_mode_command),
+            wrapped_feed_mode_command=payload.get("wrapped_feed_mode_command", defaults.wrapped_feed_mode_command),
+            standard_feed_mode_command=payload.get("standard_feed_mode_command", defaults.standard_feed_mode_command),
+            axis_reset_command=payload.get("axis_reset_command", defaults.axis_reset_command),
+            initial_position_command=payload.get("initial_position_command", defaults.initial_position_command),
             setup_stop_command=payload.get("setup_stop_command", defaults.setup_stop_command),
             process_feed_ipm=float(payload.get("process_feed_ipm", defaults.process_feed_ipm)),
             rapid_feed_ipm=float(payload.get("rapid_feed_ipm", defaults.rapid_feed_ipm)),

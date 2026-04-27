@@ -112,8 +112,8 @@ def _emit_wrapped_cut_section(
         f"(END GEOMETRY: angle={angle_deg:.3f} join_dia={join_dia_in:.3f} od={od_in:.3f})",
         f"G00 Z{cfg.safe_z_in:.4f}",
         f"G00 Z{cfg.pierce_z_in:.4f}",
-        "G91",
-        "G01 G93.1 F#29002",
+        cfg.incremental_mode_command,
+        cfg.wrapped_feed_mode_command,
     ]
     x0 = points[0][1]
     normalized = [(a_deg, x - x0) for a_deg, x in points]
@@ -123,7 +123,7 @@ def _emit_wrapped_cut_section(
         dx = x - prev_x
         lines.append(f"G01 A{da:.4f} X{dx:.4f}")
         prev_a, prev_x = a_deg, x
-    lines.extend(["G94", "G90", f";{end_label} - End"])
+    lines.extend([cfg.standard_feed_mode_command, cfg.absolute_mode_command, f";{end_label} - End"])
     return lines
 
 
@@ -159,9 +159,9 @@ def emit_end_reposition(placement: NestPlacement, cfg: EmiMachineProfile) -> lis
     traverse = placement.length_in + compensation
     return [
         ";End1->End2 Reposition",
-        "G91",
+        cfg.incremental_mode_command,
         f"G01 X{traverse:.4f} F#29001",
-        "G90",
+        cfg.absolute_mode_command,
         f"G00 A{placement.rotational_offset_deg:.4f}",
         f"G00 Z{cfg.pierce_z_in:.4f}",
     ]
@@ -256,14 +256,14 @@ def emit_nc1_part_to_emi(part: Nc1Part) -> str:
         cfg.work_offset_command,
         cfg.tool_select_command,
         cfg.tool_length_command,
-        "G90",
+        cfg.absolute_mode_command,
         cfg.torch_raise_command,
         f"#29001 = {cfg.process_feed_ipm:.0f}",
         f"#29002 = {cfg.rapid_feed_ipm:.0f}",
         f"(PART MARK: {part.part_mark})",
         f"(LENGTH: {part.length_in:.3f})",
         f"(OD: {part.outer_diameter_in:.3f} WALL: {part.wall_thickness_in:.3f})",
-        f"G00 Y0.0 A0.0",
+        cfg.initial_position_command,
         f"G01 Z{cfg.pierce_z_in:.4f} F#29001",
         cfg.clamp_command,
         *_emit_setup_stop(cfg.setup_stop_mode, "program_start", cfg),
@@ -288,12 +288,12 @@ def emit_nested_nest_to_emi(nest: LinearNest, profile: EmiMachineProfile | None 
         cfg.work_offset_command,
         cfg.tool_select_command,
         cfg.tool_length_command,
-        "G90",
+        cfg.absolute_mode_command,
         cfg.torch_raise_command,
         f"#29001 = {cfg.process_feed_ipm:.0f}",
         f"#29002 = {cfg.rapid_feed_ipm:.0f}",
         "(LOAD SEQUENCE)",
-        "G00 Y0.0 A0.0",
+        cfg.initial_position_command,
         f"G01 Z{cfg.pierce_z_in:.4f} F#29001",
         cfg.clamp_command,
         *_emit_setup_stop(cfg.setup_stop_mode, "program_start", cfg),
@@ -317,7 +317,7 @@ def emit_nested_nest_to_emi(nest: LinearNest, profile: EmiMachineProfile | None 
                 lines.append(cfg.trim_cut_command)
             else:
                 lines.append("(TRIM CUT COMMAND NOT CONFIGURED)")
-        lines.extend(["G90", "G92 X0.0", f"G00 X{placement.offset_in:.4f}"])
+        lines.extend([cfg.absolute_mode_command, cfg.axis_reset_command, f"G00 X{placement.offset_in:.4f}"])
         lines.extend(_emit_setup_stop(cfg.setup_stop_mode, "piece_start", cfg))
         lines.extend(_emit_piece_end_blocks(placement, cfg))
         lines.append(f"G00 Z{cfg.safe_z_in:.4f}")

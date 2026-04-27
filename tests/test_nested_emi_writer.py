@@ -141,3 +141,35 @@ def test_emit_nested_nest_default_setup_stop_mode_is_enabled() -> None:
     ]
     text = emit_nested_nest_to_emi(nest)
     assert "M00" in text
+
+
+def test_emit_nested_nest_uses_profile_modal_and_reset_commands() -> None:
+    nest = LinearNest(nest_id="nest-105", profile_family=ProfileFamily.PIPE, stock_length_in=252.0)
+    nest.placements = [
+        NestPlacement(
+            instance_id="A#1",
+            part_mark="A",
+            offset_in=0.0,
+            length_in=20.0,
+            end1_angle_deg=15.0,
+            end1_join_diameter_in=1.2,
+            end2_angle_deg=15.0,
+            end2_join_diameter_in=1.2,
+            outer_diameter_in=1.9,
+        ),
+    ]
+    profile = EmiMachineProfile(
+        absolute_mode_command="G90.1",
+        incremental_mode_command="G91.1",
+        wrapped_feed_mode_command="G01 G93.1 F#90002",
+        standard_feed_mode_command="G94.1",
+        axis_reset_command="G92 X1.0",
+        initial_position_command="G00 Y1.0 A5.0",
+    )
+    text = emit_nested_nest_to_emi(nest, profile=profile)
+    assert "G90.1" in text
+    assert "G91.1" in text
+    assert "G01 G93.1 F#90002" in text
+    assert "G94.1" in text
+    assert "G92 X1.0" in text
+    assert "G00 Y1.0 A5.0" in text
