@@ -26,4 +26,7 @@ def test_cli_calibrate_reference_generates_report(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     assert payload["status"] == "ok"
+    assert "numeric_deltas" in payload
+    assert "per_end_compare" in payload
+    assert "sequence_compare" in payload
     assert (tmp_path / "calibration_report.json").exists()

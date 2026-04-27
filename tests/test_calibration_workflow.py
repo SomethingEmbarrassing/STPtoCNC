@@ -21,3 +21,10 @@ def test_build_calibration_report_writes_bundle(tmp_path: Path) -> None:
     assert (tmp_path / "calibration_report.json").exists()
     assert Path(report["generated_cnc_path"]).exists()
     assert "ak_usage_todo" in report["field_to_output_mapping"]
+    assert "per_end_compare" in report
+    assert "numeric_deltas" in report
+    assert "sequence_compare" in report
+    assert "calibration_score" in report
+    assert report["calibration_score"]["behavior_total"] >= report["calibration_score"]["behavior_matches"]
+    assert isinstance(report["numeric_deltas"]["line_count_delta"], int)
+    assert isinstance(report["per_end_compare"]["end1"]["deltas"]["angle_deg"], float)

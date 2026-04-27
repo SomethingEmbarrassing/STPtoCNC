@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from stptocnc.importers import parse_nc1_file
+from stptocnc.parsers import compare_cnc_conformance, inspect_cnc_text
 from stptocnc.post.emi_writer import emit_nc1_part_to_emi
 
 
@@ -19,6 +21,38 @@ def _behavior_flags(cnc_text: str) -> dict[str, bool]:
         "wrapped_modal": "G01 G93.1 F#29002" in joined and "G94" in joined and "G91" in joined,
         "end_sequence": ";End1 - Start" in joined and ";End2 - Start" in joined and ";End1->End2 Reposition" in joined,
     }
+
+
+def _extract_generated_end_geometry(cnc_text: str) -> dict[str, dict[str, float]]:
+    """Extract END GEOMETRY comment values from generated CNC text."""
+    result: dict[str, dict[str, float]] = {}
+    current_end: str | None = None
+    for raw in cnc_text.splitlines():
+        stripped = raw.strip()
+        if stripped.startswith(";End1 - Start"):
+            current_end = "end1"
+            continue
+        if stripped.startswith(";End2 - Start"):
+            current_end = "end2"
+            continue
+        if not current_end:
+            continue
+        match = re.search(
+            r"\(END GEOMETRY:\s*angle=([-+]?\d+(?:\.\d+)?)\s+join_dia=([-+]?\d+(?:\.\d+)?)\s+od=([-+]?\d+(?:\.\d+)?)\)",
+            stripped,
+        )
+        if not match:
+            continue
+        result[current_end] = {
+            "angle_deg": float(match.group(1)),
+            "join_diameter_in": float(match.group(2)),
+            "outer_diameter_in": float(match.group(3)),
+        }
+    return result
+
+
+def _round_delta(value: float) -> float:
+    return round(value, 6)
 
 
 def build_calibration_report(
@@ -40,6 +74,36 @@ def build_calibration_report(
     legacy_text = legacy.read_text(encoding="utf-8")
     generated_flags = _behavior_flags(generated_cnc)
     legacy_flags = _behavior_flags(legacy_text)
+    generated_end_geometry = _extract_generated_end_geometry(generated_cnc)
+
+    expected_end1 = {
+        "angle_deg": part.end1.angle_deg,
+        "join_diameter_in": part.end1.join_diameter_in,
+        "outer_diameter_in": part.outer_diameter_in,
+        "flat_cut": part.end1.flat_cut,
+    }
+    expected_end2 = {
+        "angle_deg": part.end2.angle_deg,
+        "join_diameter_in": part.end2.join_diameter_in,
+        "outer_diameter_in": part.outer_diameter_in,
+        "flat_cut": part.end2.flat_cut,
+    }
+    observed_end1 = generated_end_geometry.get("end1", {})
+    observed_end2 = generated_end_geometry.get("end2", {})
+    generated_inspection = inspect_cnc_text(generated_cnc, source_path=str(generated_path))
+    legacy_inspection = inspect_cnc_text(legacy_text, source_path=str(legacy))
+    sequence_compare = compare_cnc_conformance(generated_path, legacy)
+
+    numeric_deltas = {
+        "part_length_in_delta": _round_delta(part.length_in - part.length_in),  # explicit placeholder for report schema
+        "rotational_offset_deg_delta": _round_delta(part.rotational_offset_deg - part.rotational_offset_deg),
+        "line_count_delta": generated_inspection["line_count"] - legacy_inspection["line_count"],
+        "motion_line_count_delta": (
+            generated_inspection["summary"]["motion_line_count"] - legacy_inspection["summary"]["motion_line_count"]
+        ),
+        "comment_count_delta": generated_inspection["summary"]["comment_count"] - legacy_inspection["summary"]["comment_count"],
+        "variable_count_delta": generated_inspection["summary"]["variable_count"] - legacy_inspection["summary"]["variable_count"],
+    }
 
     report = {
         "status": "ok",
@@ -66,6 +130,56 @@ def build_calibration_report(
             "rotational_offset": "rotational_offset_deg",
             "ak_usage_status": "parsed_and_preserved_not_yet_directly_used_for_path_generation",
             "ak_usage_todo": "TODO: map AK contour rows to wrapped toolpath points when machine mapping is confirmed.",
+        },
+        "per_end_compare": {
+            "end1": {
+                "expected": expected_end1,
+                "generated": observed_end1,
+                "deltas": {
+                    "angle_deg": _round_delta(observed_end1.get("angle_deg", 0.0) - expected_end1["angle_deg"]),
+                    "join_diameter_in": _round_delta(
+                        observed_end1.get("join_diameter_in", 0.0) - expected_end1["join_diameter_in"]
+                    ),
+                    "outer_diameter_in": _round_delta(
+                        observed_end1.get("outer_diameter_in", 0.0) - expected_end1["outer_diameter_in"]
+                    ),
+                },
+            },
+            "end2": {
+                "expected": expected_end2,
+                "generated": observed_end2,
+                "deltas": {
+                    "angle_deg": _round_delta(observed_end2.get("angle_deg", 0.0) - expected_end2["angle_deg"]),
+                    "join_diameter_in": _round_delta(
+                        observed_end2.get("join_diameter_in", 0.0) - expected_end2["join_diameter_in"]
+                    ),
+                    "outer_diameter_in": _round_delta(
+                        observed_end2.get("outer_diameter_in", 0.0) - expected_end2["outer_diameter_in"]
+                    ),
+                },
+            },
+        },
+        "numeric_deltas": numeric_deltas,
+        "inspection_compare": {
+            "generated": {
+                "line_count": generated_inspection["line_count"],
+                "summary": generated_inspection["summary"],
+            },
+            "legacy": {
+                "line_count": legacy_inspection["line_count"],
+                "summary": legacy_inspection["summary"],
+            },
+        },
+        "sequence_compare": sequence_compare,
+        "calibration_score": {
+            "behavior_matches": sum(1 for matched in {k: generated_flags[k] == legacy_flags[k] for k in generated_flags}.values() if matched),
+            "behavior_total": len(generated_flags),
+            "status": (
+                "pass"
+                if sequence_compare["status"] == "ok"
+                and all(generated_flags[k] == legacy_flags[k] for k in generated_flags)
+                else "warn"
+            ),
         },
         "behavior_compare": {
             "generated": generated_flags,
