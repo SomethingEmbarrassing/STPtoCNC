@@ -24,6 +24,12 @@ class EmiMachineProfile:
     tool_select_command: str = "T1"
     tool_length_command: str = "G43 H1"
     clamp_command: str = "M10"
+    clamp_close_command: str = "M10"
+    clamp_open_command: str = "M11"
+    primary_chuck_open_command: str | None = "M74"
+    primary_chuck_close_command: str | None = "M75"
+    part_sensor_air_on_command: str | None = "M76"
+    part_sensor_air_off_command: str | None = "M77"
     absolute_mode_command: str = "G90"
     incremental_mode_command: str = "G91"
     wrapped_feed_mode_command: str = "G01 G93.1 F#29002"
@@ -64,6 +70,12 @@ class EmiMachineProfile:
             tool_select_command=payload.get("tool_select_command", defaults.tool_select_command),
             tool_length_command=payload.get("tool_length_command", defaults.tool_length_command),
             clamp_command=payload.get("clamp_command", defaults.clamp_command),
+            clamp_close_command=payload.get("clamp_close_command", payload.get("clamp_command", defaults.clamp_close_command)),
+            clamp_open_command=payload.get("clamp_open_command", defaults.clamp_open_command),
+            primary_chuck_open_command=payload.get("primary_chuck_open_command", defaults.primary_chuck_open_command),
+            primary_chuck_close_command=payload.get("primary_chuck_close_command", defaults.primary_chuck_close_command),
+            part_sensor_air_on_command=payload.get("part_sensor_air_on_command", defaults.part_sensor_air_on_command),
+            part_sensor_air_off_command=payload.get("part_sensor_air_off_command", defaults.part_sensor_air_off_command),
             absolute_mode_command=payload.get("absolute_mode_command", defaults.absolute_mode_command),
             incremental_mode_command=payload.get("incremental_mode_command", defaults.incremental_mode_command),
             wrapped_feed_mode_command=payload.get("wrapped_feed_mode_command", defaults.wrapped_feed_mode_command),

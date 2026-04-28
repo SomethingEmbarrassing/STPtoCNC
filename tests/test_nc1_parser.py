@@ -1,5 +1,6 @@
 from stptocnc.importers.nc1_parser import parse_nc1_text
 from stptocnc.models.nesting import EndCondition, infer_end_condition_from_nc1, infer_start_condition_from_nc1
+import pytest
 
 
 SAMPLE_NC1 = """
@@ -103,3 +104,9 @@ END2 JOIN DIAMETER: 2.300
 """
     )
     assert infer_end_condition_from_nc1(part) == EndCondition.MITER
+
+
+def test_parse_nc1_text_error_includes_source_path_when_provided() -> None:
+    with pytest.raises(ValueError) as exc_info:
+        parse_nc1_text("PART MARK: bad1", source_path="docs/bad1.nc1")
+    assert "docs/bad1.nc1" in str(exc_info.value)

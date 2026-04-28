@@ -248,6 +248,7 @@ def emit_nc1_part_to_emi(part: Nc1Part) -> str:
         rotational_offset_deg=part.rotational_offset_deg,
         outer_diameter_in=part.outer_diameter_in,
     )
+    clamp_cmd = cfg.clamp_close_command or cfg.clamp_command
     lines: list[str] = [
         "%",
         f"(PROGRAM {part.part_mark})",
@@ -265,7 +266,7 @@ def emit_nc1_part_to_emi(part: Nc1Part) -> str:
         f"(OD: {part.outer_diameter_in:.3f} WALL: {part.wall_thickness_in:.3f})",
         cfg.initial_position_command,
         f"G01 Z{cfg.pierce_z_in:.4f} F#29001",
-        cfg.clamp_command,
+        clamp_cmd,
         *_emit_setup_stop(cfg.setup_stop_mode, "program_start", cfg),
     ]
     lines.extend(_emit_piece_end_blocks(pseudo_placement, cfg))
@@ -280,6 +281,7 @@ def emit_nested_nest_to_emi(nest: LinearNest, profile: EmiMachineProfile | None 
     machine behaviors explicit as comments, rather than writing blank placeholders.
     """
     cfg = profile or EmiMachineProfile()
+    clamp_cmd = cfg.clamp_close_command or cfg.clamp_command
     lines: list[str] = [
         "%",
         f"(PROGRAM {nest.nest_id})",
@@ -295,7 +297,7 @@ def emit_nested_nest_to_emi(nest: LinearNest, profile: EmiMachineProfile | None 
         "(LOAD SEQUENCE)",
         cfg.initial_position_command,
         f"G01 Z{cfg.pierce_z_in:.4f} F#29001",
-        cfg.clamp_command,
+        clamp_cmd,
         *_emit_setup_stop(cfg.setup_stop_mode, "program_start", cfg),
         f"(NEST STOCK LENGTH IN: {nest.stock_length_in:.3f})",
         f"(NEST USED LENGTH IN: {nest.used_length_in:.3f})",

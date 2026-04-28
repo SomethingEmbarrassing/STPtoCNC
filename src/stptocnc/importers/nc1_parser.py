@@ -269,7 +269,8 @@ def parse_nc1_text(text: str, source_path: str | None = None) -> Nc1Part:
             missing.append(name)
 
     if missing:
-        raise ValueError(f"Unable to parse NC1 fields: {', '.join(missing)}")
+        source_label = source_path or "<text>"
+        raise ValueError(f"Unable to parse NC1 fields from {source_label}: {', '.join(missing)}")
 
     return Nc1Part(
         part_mark=str(part_mark),
