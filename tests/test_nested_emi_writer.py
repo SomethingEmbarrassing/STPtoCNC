@@ -207,3 +207,34 @@ def test_emit_nested_nest_emits_optional_chuck_and_sensor_commands_when_enabled(
     assert "(OPTIONAL SENSOR AIR: OFF)" in text
     assert "(OPTIONAL CHUCK: OPEN)" in text
     assert "M74" in text
+
+
+def test_emit_nested_nest_skips_optional_fixture_commands_when_command_mapping_missing() -> None:
+    nest = LinearNest(nest_id="nest-107", profile_family=ProfileFamily.PIPE, stock_length_in=252.0)
+    nest.placements = [
+        NestPlacement(
+            instance_id="A#1",
+            part_mark="A",
+            offset_in=0.0,
+            length_in=20.0,
+            end1_angle_deg=10.0,
+            end1_join_diameter_in=1.2,
+            end2_angle_deg=10.0,
+            end2_join_diameter_in=1.2,
+        ),
+    ]
+    profile = EmiMachineProfile(
+        emit_primary_chuck_commands=True,
+        emit_part_sensor_air_blast=True,
+        primary_chuck_open_command=None,
+        primary_chuck_close_command=None,
+        part_sensor_air_on_command=None,
+        part_sensor_air_off_command=None,
+        material_staged_check_command=None,
+    )
+    text = emit_nested_nest_to_emi(nest, profile=profile)
+    assert "(OPTIONAL CHUCK: CLOSE)" not in text
+    assert "(OPTIONAL CHUCK: OPEN)" not in text
+    assert "(OPTIONAL SENSOR AIR: ON)" not in text
+    assert "(OPTIONAL MATERIAL CHECK)" not in text
+    assert "(OPTIONAL SENSOR AIR: OFF)" not in text
