@@ -449,14 +449,17 @@ class OperatorApp(tk.Tk):
             nests, defaults, qty_overrides = self._run_pack_preview()
             out_dir = Path(self.output_dir.get())
             out_dir.mkdir(parents=True, exist_ok=True)
+            nests_for_export = self.preview_nests if self.preview_nests else nests
             result = finalize_nest_run(
                 nc1_files=[str(path) for path in self.file_paths],
                 cutlist_output=out_dir / "cutlist.xlsx",
                 cnc_output_dir=out_dir / "cnc",
                 defaults=defaults,
                 quantity_overrides=qty_overrides,
+                prepared_nests=nests_for_export,
             )
-            self._render_preview(nests)
+            self.preview_nests = nests_for_export
+            self._render_preview(self.preview_nests)
             messagebox.showinfo(
                 "Finalize complete",
                 f"Generated {result['nests']} nests\nCut list: {result['cutlist']}\nCNC dir: {out_dir / 'cnc'}",
@@ -465,10 +468,7 @@ class OperatorApp(tk.Tk):
             messagebox.showerror("Finalize error", str(exc))
 
     def move_piece_between_nests(self, instance_id: str, target_nest_id: str) -> None:
-        """Backend hook for future drag/drop reassignment UI.
-
-        TODO: wire this into list/canvas interactions for point-and-click reassignment.
-        """
+        """Move a piece instance between existing preview nests and redraw."""
         self.preview_nests = move_instance_between_nests(self.preview_nests, instance_id, target_nest_id)
         self._render_preview(self.preview_nests)
 
