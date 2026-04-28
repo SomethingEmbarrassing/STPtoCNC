@@ -30,6 +30,9 @@ class EmiMachineProfile:
     primary_chuck_close_command: str | None = "M75"
     part_sensor_air_on_command: str | None = "M76"
     part_sensor_air_off_command: str | None = "M77"
+    material_staged_check_command: str | None = "M44"
+    emit_primary_chuck_commands: bool = False
+    emit_part_sensor_air_blast: bool = False
     absolute_mode_command: str = "G90"
     incremental_mode_command: str = "G91"
     wrapped_feed_mode_command: str = "G01 G93.1 F#29002"
@@ -76,6 +79,9 @@ class EmiMachineProfile:
             primary_chuck_close_command=payload.get("primary_chuck_close_command", defaults.primary_chuck_close_command),
             part_sensor_air_on_command=payload.get("part_sensor_air_on_command", defaults.part_sensor_air_on_command),
             part_sensor_air_off_command=payload.get("part_sensor_air_off_command", defaults.part_sensor_air_off_command),
+            material_staged_check_command=payload.get("material_staged_check_command", defaults.material_staged_check_command),
+            emit_primary_chuck_commands=bool(payload.get("emit_primary_chuck_commands", defaults.emit_primary_chuck_commands)),
+            emit_part_sensor_air_blast=bool(payload.get("emit_part_sensor_air_blast", defaults.emit_part_sensor_air_blast)),
             absolute_mode_command=payload.get("absolute_mode_command", defaults.absolute_mode_command),
             incremental_mode_command=payload.get("incremental_mode_command", defaults.incremental_mode_command),
             wrapped_feed_mode_command=payload.get("wrapped_feed_mode_command", defaults.wrapped_feed_mode_command),

@@ -188,7 +188,12 @@ find docs -maxdepth 1 -type f
   - Angle: `240.0 in` (20')
 - NC1 quantity is used when present; otherwise default quantity is `1`.
 - Nest visualization target is **linear** (stock bar / cut strip), not 3D solids.
-- Nesting reuses compatible open-stick remnants/drops using a deterministic best-fit reuse heuristic.
+- Automatic nesting uses deterministic **Best-Fit Decreasing (BFD)**:
+  - group by compatible stock/material/profile family
+  - place longest effective-length instances first
+  - evaluate all open compatible sticks and choose the placement that leaves the smallest remaining drop
+  - open a new stock stick only when no compatible open stick can fit
+- Within each selected stick, sequencing is reordered deterministically to reduce trim actions (flat-compatible pieces back-to-back where possible).
 - Adjacency trim inference (current helper):
   - First part on a fresh stick gets **no leading trim** (fresh raw stock is flat).
   - Between adjacent parts, trim is added **only when previous end is not flat-compatible for next start**.
@@ -221,7 +226,7 @@ Current assumptions:
 - one row per placed part instance (no quantity collapsing)
 - trim-before-piece comes from adjacency inference
 - start offset defaults to 0.0 until richer start-feature offsets are available
-- manual reassignment framework is available in backend (`move_instance_between_nests`) for future drag/drop UI wiring
+- manual reassignment remains available in backend (`move_instance_between_nests`) after automatic BFD suggestions; compatibility/fit validation and trim/drop recalculation still apply
 
 > This project targets EMI-specific `.CNC` output and does not target generic G-code.
 

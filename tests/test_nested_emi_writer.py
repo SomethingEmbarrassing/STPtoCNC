@@ -173,3 +173,37 @@ def test_emit_nested_nest_uses_profile_modal_and_reset_commands() -> None:
     assert "G94.1" in text
     assert "G92 X1.0" in text
     assert "G00 Y1.0 A5.0" in text
+
+
+def test_emit_nested_nest_emits_optional_chuck_and_sensor_commands_when_enabled() -> None:
+    nest = LinearNest(nest_id="nest-106", profile_family=ProfileFamily.PIPE, stock_length_in=252.0)
+    nest.placements = [
+        NestPlacement(
+            instance_id="A#1",
+            part_mark="A",
+            offset_in=0.0,
+            length_in=20.0,
+            end1_angle_deg=10.0,
+            end1_join_diameter_in=1.2,
+            end2_angle_deg=10.0,
+            end2_join_diameter_in=1.2,
+        ),
+    ]
+    profile = EmiMachineProfile(
+        emit_primary_chuck_commands=True,
+        emit_part_sensor_air_blast=True,
+        primary_chuck_open_command="M74",
+        primary_chuck_close_command="M75",
+        part_sensor_air_on_command="M76",
+        part_sensor_air_off_command="M77",
+        material_staged_check_command="M44",
+    )
+    text = emit_nested_nest_to_emi(nest, profile=profile)
+    assert "(OPTIONAL CHUCK: CLOSE)" in text
+    assert "M75" in text
+    assert "(OPTIONAL MATERIAL CHECK)" in text
+    assert "M44" in text
+    assert "(OPTIONAL SENSOR AIR: ON)" in text
+    assert "(OPTIONAL SENSOR AIR: OFF)" in text
+    assert "(OPTIONAL CHUCK: OPEN)" in text
+    assert "M74" in text

@@ -44,6 +44,7 @@ python packaging/tools/build_installer.py --iscc "C:\\Program Files (x86)\\Inno 
 - UI intent is linear stock assignment on a stock bar, not a full 3D viewer.
 - Domain should expose stock length, used length, remaining length, and placements for this.
 - Automatic nesting should reuse compatible remnants on previously opened sticks before opening new stock.
+- Automatic nesting target is deterministic **Best-Fit Decreasing** (BFD): evaluate all compatible open sticks, choose smallest remaining drop, and only open new stock when no fit exists.
 - Adjacency trim rule:
   - first part on fresh stock gets no trim
   - trim (0.25 in) only when previous end is not compatible with next start

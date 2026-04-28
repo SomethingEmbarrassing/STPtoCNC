@@ -179,6 +179,24 @@ def _emit_setup_stop(mode: str, phase: str, cfg: EmiMachineProfile) -> list[str]
     return []
 
 
+def _emit_optional_fixture_commands(cfg: EmiMachineProfile) -> list[str]:
+    lines: list[str] = []
+    if cfg.emit_primary_chuck_commands and cfg.primary_chuck_close_command:
+        lines.append(f"(OPTIONAL CHUCK: CLOSE)")
+        lines.append(cfg.primary_chuck_close_command)
+    if cfg.emit_part_sensor_air_blast:
+        if cfg.part_sensor_air_on_command:
+            lines.append("(OPTIONAL SENSOR AIR: ON)")
+            lines.append(cfg.part_sensor_air_on_command)
+        if cfg.material_staged_check_command:
+            lines.append("(OPTIONAL MATERIAL CHECK)")
+            lines.append(cfg.material_staged_check_command)
+        if cfg.part_sensor_air_off_command:
+            lines.append("(OPTIONAL SENSOR AIR: OFF)")
+            lines.append(cfg.part_sensor_air_off_command)
+    return lines
+
+
 def _emit_piece_end_blocks(placement: NestPlacement, cfg: EmiMachineProfile) -> list[str]:
     end1_angle = placement.end1_angle_deg if placement.end1_angle_deg is not None else 0.0
     end1_join = placement.end1_join_diameter_in if placement.end1_join_diameter_in is not None else 0.0
@@ -267,6 +285,7 @@ def emit_nc1_part_to_emi(part: Nc1Part) -> str:
         cfg.initial_position_command,
         f"G01 Z{cfg.pierce_z_in:.4f} F#29001",
         clamp_cmd,
+        *_emit_optional_fixture_commands(cfg),
         *_emit_setup_stop(cfg.setup_stop_mode, "program_start", cfg),
     ]
     lines.extend(_emit_piece_end_blocks(pseudo_placement, cfg))
@@ -298,6 +317,7 @@ def emit_nested_nest_to_emi(nest: LinearNest, profile: EmiMachineProfile | None 
         cfg.initial_position_command,
         f"G01 Z{cfg.pierce_z_in:.4f} F#29001",
         clamp_cmd,
+        *_emit_optional_fixture_commands(cfg),
         *_emit_setup_stop(cfg.setup_stop_mode, "program_start", cfg),
         f"(NEST STOCK LENGTH IN: {nest.stock_length_in:.3f})",
         f"(NEST USED LENGTH IN: {nest.used_length_in:.3f})",
@@ -325,6 +345,8 @@ def emit_nested_nest_to_emi(nest: LinearNest, profile: EmiMachineProfile | None 
         lines.append(f"G00 Z{cfg.safe_z_in:.4f}")
         lines.append(cfg.piece_complete_prompt)
 
+    if cfg.emit_primary_chuck_commands and cfg.primary_chuck_open_command:
+        lines.extend(["(OPTIONAL CHUCK: OPEN)", cfg.primary_chuck_open_command])
     lines.extend([cfg.nested_complete_prompt, cfg.footer_command, "%"])
     return "\n".join(lines) + "\n"
 

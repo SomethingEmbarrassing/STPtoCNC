@@ -60,5 +60,6 @@
 - Unknown EMI semantics are called out explicitly in output comments until matched samples are provided.
 - EMI command mapping can now be provided through machine-profile JSON to encode shop/manual-specific commands.
 - PieceMaker-style fields now parsed for flat-cut flags and rotational offset (further command-level mapping pending).
-- Nesting now reuses compatible open-stick remnants (drop-aware best-fit reuse).
-- Backend manual reassignment operation exists for moving pieces between compatible nests.
+- Automatic nesting now uses deterministic **Best-Fit Decreasing** (compatible grouping + longest-first + best-drop placement among open sticks).
+- Nesting reuses compatible open-stick remnants before opening new stock.
+- Backend manual reassignment operation exists for moving pieces between compatible nests after automatic layout suggestions.

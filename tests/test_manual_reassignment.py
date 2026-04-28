@@ -42,6 +42,16 @@ def test_move_rejects_when_target_overflows() -> None:
         move_instance_between_nests(nests, "C", "nest-2", NestingDefaults())
 
 
+def test_move_rejects_incompatible_material() -> None:
+    parts = [
+        PartInstance(instance_id="P1", part_mark="P1", length_in=120.0, profile_family=ProfileFamily.PIPE, start_condition=EndCondition.FLAT, end_condition=EndCondition.FLAT, material="A500"),
+        PartInstance(instance_id="P2", part_mark="P2", length_in=120.0, profile_family=ProfileFamily.PIPE, start_condition=EndCondition.FLAT, end_condition=EndCondition.FLAT, material="A36"),
+    ]
+    nests = pack_instances_first_fit(parts, NestingDefaults()).nests
+    with pytest.raises(ValueError, match="Incompatible material"):
+        move_instance_between_nests(nests, "P1", "nest-2", NestingDefaults())
+
+
 def test_reassignment_is_deterministic() -> None:
     parts = [_part("A", 144.0), _part("B", 144.0), _part("C", 36.0)]
     nests1 = pack_instances_first_fit(parts, NestingDefaults()).nests
