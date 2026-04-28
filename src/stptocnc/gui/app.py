@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from collections import OrderedDict
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+from tkinter import font as tkfont
 from pathlib import Path
 
 from stptocnc.config import NestingDefaults, ProfileFamily
@@ -67,7 +68,8 @@ class OperatorApp(tk.Tk):
         self.title("STPtoCNC Operator")
         self.geometry("1320x860")
         self.minsize(1180, 760)
-        self.option_add("*Font", "Segoe UI 10")
+        for font_name in ("TkDefaultFont", "TkTextFont", "TkMenuFont", "TkHeadingFont"):
+            tkfont.nametofont(font_name).configure(family="Segoe UI", size=10)
 
         self.file_paths: list[Path] = []
         self.preview_nests: list[object] = []
