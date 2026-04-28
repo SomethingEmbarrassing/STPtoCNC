@@ -1,0 +1,64 @@
+"""Finalize-nest orchestration workflow."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from pathlib import Path
+
+from stptocnc.config import EmiMachineProfile, NestingDefaults
+from stptocnc.importers import parse_nc1_file
+from stptocnc.models import expand_part_instances
+from stptocnc.models.nesting import LinearNest
+from stptocnc.nesting import pack_instances_first_fit
+from stptocnc.post.emi_writer import emit_nested_nest_to_emi
+from stptocnc.reports import write_cutlist_workbook
+
+
+def _emit_nested_cnc(nest: LinearNest, output_dir: Path, machine_profile: EmiMachineProfile | None = None) -> Path:
+    """Emit nest-aware EMI-oriented CNC artifact."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / f"{nest.nest_id}.cnc"
+    path.write_text(emit_nested_nest_to_emi(nest, profile=machine_profile), encoding="utf-8")
+    return path
+
+
+def _timestamped_cutlist_path(path: str | Path) -> Path:
+    target = Path(path)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return target.with_name(f"{target.stem}_{stamp}{target.suffix}")
+
+
+def finalize_nest_run(
+    nc1_files: list[str | Path],
+    cutlist_output: str | Path,
+    cnc_output_dir: str | Path | None = None,
+    defaults: NestingDefaults | None = None,
+    quantity_overrides: dict[str, int] | None = None,
+    machine_profile: EmiMachineProfile | None = None,
+    prepared_nests: list[LinearNest] | None = None,
+) -> dict[str, object]:
+    """Finalize a nest run by producing nested artifacts and operator cut list."""
+    if prepared_nests is None:
+        cfg = defaults or NestingDefaults()
+        parts = [parse_nc1_file(path) for path in nc1_files]
+        instances = expand_part_instances(parts, quantity_overrides=quantity_overrides)
+        nesting_result = pack_instances_first_fit(instances, cfg)
+        nests = nesting_result.nests
+    else:
+        nests = prepared_nests
+
+    cnc_paths: list[str] = []
+    if cnc_output_dir is not None:
+        out_dir = Path(cnc_output_dir)
+        for nest in nests:
+            cnc_paths.append(str(_emit_nested_cnc(nest, out_dir, machine_profile=machine_profile)))
+
+    cutlist_path = write_cutlist_workbook(nests, _timestamped_cutlist_path(cutlist_output))
+
+    return {
+        "status": "ok",
+        "nests": len(nests),
+        "pieces": sum(len(n.placements) for n in nests),
+        "cutlist": str(cutlist_path),
+        "cnc_files": cnc_paths,
+    }
