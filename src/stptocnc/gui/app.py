@@ -12,6 +12,7 @@ from pathlib import Path
 from stptocnc.config import NestingDefaults, ProfileFamily
 from stptocnc.importers import parse_nc1_file
 from stptocnc.models import expand_part_instances
+from stptocnc.models.nesting import LinearNest, NestPlacement, default_stock_length_for_family
 from stptocnc.nesting import move_instance_between_nests, pack_instances_first_fit
 from stptocnc.workflows import finalize_nest_run
 from stptocnc.workflows.operator_run import parse_quantity_overrides
@@ -83,6 +84,9 @@ class OperatorApp(tk.Tk):
         self._loaded_part_qty: "OrderedDict[str, int]" = OrderedDict()
         self.theme_mode = tk.StringVar(value="Light")
         self._drag_piece_index: int | None = None
+        self._drag_instance_id: str | None = None
+        self._nest_row_bounds: list[tuple[str, int, int]] = []
+        self._new_nest_drop_bounds: tuple[int, int] | None = None
 
         self._set_theme("Light")
 
@@ -276,6 +280,9 @@ class OperatorApp(tk.Tk):
         canvas_scroll_y = ttk.Scrollbar(canvas_frame, orient=tk.VERTICAL, command=self.canvas.yview)
         canvas_scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
         self.canvas.configure(yscrollcommand=canvas_scroll_y.set)
+        self.canvas.bind("<ButtonPress-1>", self._on_canvas_drag_start)
+        self.canvas.bind("<B1-Motion>", self._on_canvas_drag_motion)
+        self.canvas.bind("<ButtonRelease-1>", self._on_canvas_drop)
 
     def _add_files(self) -> None:
         picks = filedialog.askopenfilenames(filetypes=[("NC1 files", "*.nc1 *.NC1"), ("All files", "*.*")])
@@ -367,6 +374,8 @@ class OperatorApp(tk.Tk):
         self.piece_list.delete(0, tk.END)
         self.target_nest_list.delete(0, tk.END)
         self.canvas.delete("all")
+        self._nest_row_bounds = []
+        self._new_nest_drop_bounds = None
         y = 16
         scale = 3.0
         part_palette = {
@@ -377,6 +386,7 @@ class OperatorApp(tk.Tk):
             "UNKNOWN": "#7C8A99",
         }
         for nest in nests:
+            row_top = y
             self.target_nest_list.insert(tk.END, nest.nest_id)
             self.preview_text.insert(
                 tk.END,
@@ -390,7 +400,7 @@ class OperatorApp(tk.Tk):
             # subtle shadow + near-white card background
             self.canvas.create_rectangle(x0 + 2, y + 3, x0 + width + 2, y + row_h + 3, outline="", fill="#d9dfe6")
             self.canvas.create_rectangle(x0, y, x0 + width, y + row_h, outline="#c9d2dc", fill="#ffffff")
-            for seg in _build_preview_segments(nest):
+            for idx, seg in enumerate(_build_preview_segments(nest)):
                 sx = x0 + int(seg.start_in * scale)
                 ex = sx + max(1, int(seg.length_in * scale))
                 if seg.kind == "part":
@@ -400,11 +410,25 @@ class OperatorApp(tk.Tk):
                     color = "#f97316"
                 else:
                     color = "#9ca3af"
-                self.canvas.create_rectangle(sx, y + 4, ex, y + row_h - 4, fill=color, outline="")
+                tags = ()
+                if seg.kind == "part" and idx < len(nest.placements):
+                    tags = ("draggable_part", f"instance:{nest.placements[idx].instance_id}")
+                self.canvas.create_rectangle(sx, y + 4, ex, y + row_h - 4, fill=color, outline="", tags=tags)
                 if seg.kind == "part":
-                    self.canvas.create_text((sx + ex) / 2, y + (row_h / 2), text=seg.label, fill="white", font=("Segoe UI", 8, "bold"))
+                    self.canvas.create_text((sx + ex) / 2, y + (row_h / 2), text=seg.label, fill="white", font=("Segoe UI", 8, "bold"), tags=tags)
             self.canvas.create_text(x0 + width + 80, y + (row_h / 2), text=f"Drop {nest.remaining_length_in:.2f} in", anchor="w", fill=self.palette["muted"])
+            self._nest_row_bounds.append((nest.nest_id, row_top, y + row_h))
             y += 48
+        self._new_nest_drop_bounds = (y + 4, y + 32)
+        self.canvas.create_text(
+            20,
+            self._new_nest_drop_bounds[0],
+            text="Create new nest (drop piece here)",
+            anchor="nw",
+            fill=self.palette["button_primary"],
+            font=("Segoe UI", 11, "bold"),
+            tags=("new_nest_drop_hint",),
+        )
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def _on_piece_drag_start(self, _event: tk.Event[tk.Misc]) -> None:
@@ -426,6 +450,70 @@ class OperatorApp(tk.Tk):
             messagebox.showerror("Move error", str(exc))
         finally:
             self._drag_piece_index = None
+    
+    def _on_canvas_drag_start(self, event: tk.Event[tk.Misc]) -> None:
+        if not self.preview_nests:
+            return
+        current = self.canvas.find_withtag("current")
+        if not current:
+            return
+        tags = self.canvas.gettags(current[0])
+        instance_tag = next((t for t in tags if t.startswith("instance:")), None)
+        if not instance_tag:
+            return
+        self._drag_instance_id = instance_tag.split(":", 1)[1]
+        self.canvas.delete("drag_hint")
+        self.canvas.create_text(event.x + 12, event.y - 12, text=f"Moving {self._drag_instance_id}", anchor="w", fill="#1d4ed8", tags=("drag_hint",))
+
+    def _on_canvas_drag_motion(self, event: tk.Event[tk.Misc]) -> None:
+        if not self._drag_instance_id:
+            return
+        self.canvas.coords("drag_hint", event.x + 12, event.y - 12)
+
+    def _on_canvas_drop(self, event: tk.Event[tk.Misc]) -> None:
+        if not self._drag_instance_id:
+            return
+        target_nest_id = self._target_nest_from_canvas_y(int(event.y))
+        try:
+            if target_nest_id == "__new__":
+                self._move_piece_to_new_nest(self._drag_instance_id)
+            elif target_nest_id:
+                self.move_piece_between_nests(self._drag_instance_id, target_nest_id)
+        except Exception as exc:  # noqa: BLE001
+            messagebox.showerror("Move error", str(exc))
+        finally:
+            self._drag_instance_id = None
+            self.canvas.delete("drag_hint")
+
+    def _target_nest_from_canvas_y(self, y: int) -> str | None:
+        for nest_id, top, bottom in self._nest_row_bounds:
+            if top <= y <= bottom:
+                return nest_id
+        if self._new_nest_drop_bounds and self._new_nest_drop_bounds[0] <= y <= self._new_nest_drop_bounds[1]:
+            return "__new__"
+        return None
+
+    def _move_piece_to_new_nest(self, instance_id: str) -> None:
+        _, source_nest = self._find_placement(instance_id)
+        new_nest = LinearNest(
+            nest_id=f"nest-{len(self.preview_nests) + 1}",
+            profile_family=source_nest.profile_family,
+            stock_length_in=default_stock_length_for_family(
+                source_nest.profile_family,
+                self._build_defaults(),
+            ),
+            placements=[],
+        )
+        self.preview_nests.append(new_nest)
+        self.preview_nests = move_instance_between_nests(self.preview_nests, instance_id, new_nest.nest_id, self._build_defaults())
+        self._render_preview(self.preview_nests)
+
+    def _find_placement(self, instance_id: str) -> tuple[NestPlacement, LinearNest]:
+        for nest in self.preview_nests:
+            for placement in nest.placements:
+                if placement.instance_id == instance_id:
+                    return placement, nest
+        raise ValueError(f"Instance not found: {instance_id}")
 
     def _move_selected_piece(self) -> None:
         if not self.preview_nests:
