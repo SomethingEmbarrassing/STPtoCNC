@@ -35,26 +35,30 @@ def finalize_nest_run(
     defaults: NestingDefaults | None = None,
     quantity_overrides: dict[str, int] | None = None,
     machine_profile: EmiMachineProfile | None = None,
+    prepared_nests: list[LinearNest] | None = None,
 ) -> dict[str, object]:
     """Finalize a nest run by producing nested artifacts and operator cut list."""
-    cfg = defaults or NestingDefaults()
-
-    parts = [parse_nc1_file(path) for path in nc1_files]
-    instances = expand_part_instances(parts, quantity_overrides=quantity_overrides)
-    nesting_result = pack_instances_first_fit(instances, cfg)
+    if prepared_nests is None:
+        cfg = defaults or NestingDefaults()
+        parts = [parse_nc1_file(path) for path in nc1_files]
+        instances = expand_part_instances(parts, quantity_overrides=quantity_overrides)
+        nesting_result = pack_instances_first_fit(instances, cfg)
+        nests = nesting_result.nests
+    else:
+        nests = prepared_nests
 
     cnc_paths: list[str] = []
     if cnc_output_dir is not None:
         out_dir = Path(cnc_output_dir)
-        for nest in nesting_result.nests:
+        for nest in nests:
             cnc_paths.append(str(_emit_nested_cnc(nest, out_dir, machine_profile=machine_profile)))
 
-    cutlist_path = write_cutlist_workbook(nesting_result.nests, _timestamped_cutlist_path(cutlist_output))
+    cutlist_path = write_cutlist_workbook(nests, _timestamped_cutlist_path(cutlist_output))
 
     return {
         "status": "ok",
-        "nests": len(nesting_result.nests),
-        "pieces": sum(len(n.placements) for n in nesting_result.nests),
+        "nests": len(nests),
+        "pieces": sum(len(n.placements) for n in nests),
         "cutlist": str(cutlist_path),
         "cnc_files": cnc_paths,
     }
